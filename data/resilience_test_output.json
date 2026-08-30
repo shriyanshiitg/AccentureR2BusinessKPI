@@ -1,0 +1,294 @@
+{
+  "finding_id": "FIND-KPI-zone_gmv-Z012-20260822-01",
+  "evidence_package": {
+    "finding_id": "FIND-KPI-zone_gmv-Z012-20260822-01",
+    "kpi_instance_id": "KPI-zone_gmv-Z012-20260822",
+    "kpi_id": "zone_gmv",
+    "grain_key": "Z012",
+    "period": "2026-08-22",
+    "created_at": "2026-08-30T15:39:17.388666+05:30",
+    "source_version": "SRC-OMS-v2026-08-22",
+    "terminal_outcome": "EVALUATED",
+    "terminal_outcome_reason": null,
+    "data_state": "FRESH",
+    "evaluated_on_stale_input": false,
+    "partial_sources_excluded": null,
+    "conflicting_input": false,
+    "conflicting_provenance": null,
+    "baseline": {
+      "baseline_mean": 1439888.6810209022,
+      "baseline_std": 51471.13182044058,
+      "window_size_used": 14,
+      "baseline_confidence": "HIGH"
+    },
+    "detection": {
+      "actual_value": 1036644.3535281258,
+      "delta_absolute": -403244.32749277644,
+      "delta_relative": -0.2800524323914195,
+      "statistically_significant": true,
+      "test_statistic": -7.834378480339482,
+      "test_type": "z_score",
+      "business_impact_value": 403244.32749277644,
+      "business_impact_significant": true,
+      "material": true
+    },
+    "decomposition": {
+      "pvm": {
+        "applicable": true,
+        "method_not_applicable_reason": null,
+        "volume_effect": -424602.32619585353,
+        "price_effect": 38.6744545935002,
+        "mix_effect": null
+      },
+      "drivers": [
+        {
+          "driver_name": "dark_store_stockout_rate",
+          "contribution_value": -178124.69385116542,
+          "contribution_pct": -44.172895117627235,
+          "method": "statistical decomposition (unscripted)"
+        },
+        {
+          "driver_name": "delivery_sla_adherence",
+          "contribution_value": -119045.54555954355,
+          "contribution_pct": -29.521939291675736,
+          "method": "statistical decomposition (unscripted)"
+        }
+      ],
+      "residual_pct": 26.305165590697033,
+      "residual_note": "Residual represents unexplained variance not attributable to any single governed driver \u2014 C2 does not force-fit this to discount_applied, competitor_dark_store_opening, or demand_spike without direct evidence.",
+      "dominant_driver": "dark_store_stockout_rate",
+      "no_dominant_contributor": false
+    },
+    "segmentation": {
+      "ranked_stores": [
+        {
+          "dark_store_id": "DS122",
+          "contribution_value": -68338.50538211953,
+          "contribution_pct": 16.947170914225378
+        },
+        {
+          "dark_store_id": "DS121",
+          "contribution_value": -33413.18863133915,
+          "contribution_pct": 8.286090182369076
+        },
+        {
+          "dark_store_id": "DS123",
+          "contribution_value": -19402.323584615147,
+          "contribution_pct": 4.811555243752986
+        }
+      ],
+      "excluded_stores": []
+    },
+    "day_month_links": [],
+    "lineage_chain": [
+      "SRC-OMS",
+      "SRC-OMS-v2026-08-22",
+      "AGG-Z012-20260822",
+      "KPI-zone_gmv-Z012-20260822",
+      "FIND-KPI-zone_gmv-Z012-20260822-01"
+    ],
+    "lineage_edges": [
+      {
+        "from_id": "SRC-OMS",
+        "to_id": "SRC-OMS-v2026-08-22",
+        "edge_type": "batch_version",
+        "created_at": "2026-08-30T15:39:17.388594+05:30"
+      },
+      {
+        "from_id": "SRC-OMS-v2026-08-22",
+        "to_id": "AGG-Z012-20260822",
+        "edge_type": "transformation",
+        "created_at": "2026-08-30T15:39:17.388604+05:30"
+      },
+      {
+        "from_id": "AGG-Z012-20260822",
+        "to_id": "KPI-zone_gmv-Z012-20260822",
+        "edge_type": "kpi_evaluation",
+        "created_at": "2026-08-30T15:39:17.388607+05:30"
+      },
+      {
+        "from_id": "KPI-zone_gmv-Z012-20260822",
+        "to_id": "FIND-KPI-zone_gmv-Z012-20260822-01",
+        "edge_type": "finding",
+        "created_at": "2026-08-30T15:39:17.388609+05:30"
+      }
+    ]
+  },
+  "hypothesis_package": {
+    "finding_id": "FIND-KPI-zone_gmv-Z012-20260822-01",
+    "kpi_instance_id": "KPI-zone_gmv-Z012-20260822",
+    "generated_at": "2026-08-30T15:39:17.396370+05:30",
+    "evidence_package_ref": "FIND-KPI-zone_gmv-Z012-20260822-01",
+    "lineage_chain": [
+      "SRC-OMS",
+      "SRC-OMS-v2026-08-22",
+      "AGG-Z012-20260822",
+      "KPI-zone_gmv-Z012-20260822",
+      "FIND-KPI-zone_gmv-Z012-20260822-01"
+    ],
+    "answer_without_hypothesis": false,
+    "answer_without_hypothesis_text": null,
+    "hypotheses": [
+      {
+        "hypothesis_id": "HYP-FIND-KPI-zone_gmv-Z012-20260822-01-01",
+        "driver_type": "dark_store_stockout_rate",
+        "claim": "A stockout pattern at Z012 is estimated to account for ~44% of the zone_gmv movement on 2026-08-22, based on active-SKU-interval analysis.",
+        "claim_status": "UNDER_EVALUATION",
+        "status": "supported",
+        "contribution_pct": -44.172895117627235,
+        "confidence_score": 56,
+        "confidence_band": "MEDIUM",
+        "hard_caps_applied": [],
+        "supporting_evidence_refs": [
+          "EVID-HYP-FIND-KPI-zone_gmv-Z012-20260822-01-01-01",
+          "EVID-HYP-FIND-KPI-zone_gmv-Z012-20260822-01-01-02"
+        ],
+        "contradicting_evidence_refs": [],
+        "contextualizing_evidence_refs": [],
+        "memory_hook": {
+          "driver_type": "dark_store_stockout_rate",
+          "kpi_id": "zone_gmv",
+          "comparable_scope": {
+            "grain_key": "Z012",
+            "grain_level": "zone"
+          },
+          "requested_fields": [
+            "prior_validation_status",
+            "prior_confidence_band",
+            "prior_outcome_observed"
+          ],
+          "result": null,
+          "result_schema_reserved": true
+        },
+        "is_residual": false,
+        "confidence_components": {
+          "materiality_strength": 30,
+          "dominance_strength": 6.074097907554529,
+          "customer_voice_score": 20.0,
+          "data_quality_penalty": 0.0,
+          "memory_points": 0.0,
+          "raw_pre_memory": 56.07409790755453,
+          "raw_with_memory": 56.07409790755453
+        }
+      },
+      {
+        "hypothesis_id": "HYP-FIND-KPI-zone_gmv-Z012-20260822-01-02",
+        "driver_type": "delivery_sla_adherence",
+        "claim": "Delivery SLA breaches at Z012 are estimated to contribute ~30% of the zone_gmv movement on 2026-08-22, based on same-day dispatch and checkout-abandonment patterns.",
+        "claim_status": "UNDER_EVALUATION",
+        "status": "supported",
+        "contribution_pct": -29.521939291675736,
+        "confidence_score": 50,
+        "confidence_band": "MEDIUM",
+        "hard_caps_applied": [],
+        "supporting_evidence_refs": [
+          "EVID-HYP-FIND-KPI-zone_gmv-Z012-20260822-01-02-03",
+          "EVID-HYP-FIND-KPI-zone_gmv-Z012-20260822-01-02-04"
+        ],
+        "contradicting_evidence_refs": [],
+        "contextualizing_evidence_refs": [],
+        "memory_hook": {
+          "driver_type": "delivery_sla_adherence",
+          "kpi_id": "zone_gmv",
+          "comparable_scope": {
+            "grain_key": "Z012",
+            "grain_level": "zone"
+          },
+          "requested_fields": [
+            "prior_validation_status",
+            "prior_confidence_band",
+            "prior_outcome_observed"
+          ],
+          "result": null,
+          "result_schema_reserved": true
+        },
+        "is_residual": false,
+        "confidence_components": {
+          "materiality_strength": 30,
+          "dominance_strength": 0,
+          "customer_voice_score": 20.0,
+          "data_quality_penalty": 0.0,
+          "memory_points": 0.0,
+          "raw_pre_memory": 50.0,
+          "raw_with_memory": 50.0
+        }
+      },
+      {
+        "hypothesis_id": "HYP-FIND-KPI-zone_gmv-Z012-20260822-01-03",
+        "driver_type": "residual",
+        "claim": "A portion of the zone_gmv movement (26.3%) remains unexplained by the governed driver set. This residual is flagged as an open investigation area, not attributed to any specific driver without evidence.",
+        "claim_status": "UNDER_EVALUATION",
+        "status": "unresolved",
+        "contribution_pct": 26.305165590697033,
+        "confidence_score": 30,
+        "confidence_band": "LOW",
+        "hard_caps_applied": [],
+        "supporting_evidence_refs": [],
+        "contradicting_evidence_refs": [],
+        "contextualizing_evidence_refs": [],
+        "memory_hook": null,
+        "is_residual": true,
+        "confidence_components": {
+          "materiality_strength": 30,
+          "dominance_strength": 0,
+          "customer_voice_score": 0.0,
+          "data_quality_penalty": 0.0,
+          "memory_points": 0.0,
+          "raw_pre_memory": 30.0,
+          "raw_with_memory": 30.0
+        }
+      }
+    ],
+    "decision": {
+      "outcome": "QUALIFY",
+      "scope": "finding",
+      "leading_hypothesis_id": "HYP-FIND-KPI-zone_gmv-Z012-20260822-01-01",
+      "caveat_text": "Quantitative decomposition points to 'dark_store_stockout_rate' as the largest single contributor (~44%), but this is presented as the leading explanation, not a confirmed one. Customer Voice evidence independently supports this explanation. 26% of the movement remains unexplained.",
+      "clarifying_question": null,
+      "abstain_reason": null,
+      "memory_context": null
+    }
+  },
+  "decision_package": {
+    "decision_package_id": "DEC-PKG-FIND-KPI-zone_gmv-Z012-20260822-01-01",
+    "finding_id": "FIND-KPI-zone_gmv-Z012-20260822-01",
+    "hypothesis_package_ref": "FIND-KPI-zone_gmv-Z012-20260822-01",
+    "evidence_package_ref": "FIND-KPI-zone_gmv-Z012-20260822-01",
+    "lineage_chain": [
+      "SRC-OMS",
+      "SRC-OMS-v2026-08-22",
+      "AGG-Z012-20260822",
+      "KPI-zone_gmv-Z012-20260822",
+      "FIND-KPI-zone_gmv-Z012-20260822-01"
+    ],
+    "generated_at": "2026-08-30T15:39:39.751001+05:30",
+    "source_decision_outcome": "QUALIFY",
+    "source_decision_scope": "finding",
+    "actions": [
+      {
+        "driver": "dark_store_stockout_rate",
+        "controllable_lever": "L2_cross_store_transfer",
+        "action": "Authorize cross-store inventory transfer of affected SKU(s) into DS121 from neighboring store with surplus inventory.",
+        "expected_impact": "If the stockout hypothesis is correct, resolving stock at the leading store is expected to recover a material portion of the zone_gmv gap (~28.0% vs. baseline) within 24-48 hours.",
+        "owner": "zone_business_head",
+        "confidence": "MEDIUM",
+        "monitoring_plan": "Monitor the leading KPI metric at 24 hours and 48 hours post-action. If the gap does not narrow within 48 hours, trigger a follow-up investigation (L7-adjacent). This recommendation is QUALIFY (not ANSWER); outcome monitoring is mandatory."
+      }
+    ],
+    "caveat_text": "Quantitative decomposition points to 'dark_store_stockout_rate' as the largest single contributor (~44%), but this is presented as the leading explanation, not a confirmed one. Customer Voice evidence independently supports this explanation. 26% of the movement remains unexplained.",
+    "caveat_source_field": "caveat_text",
+    "narrative_zone_business_head": "**Zone Z012 \u2014 2026-08-22 | ZONE GMV**\n\nZone GMV is approximately \u20b9424,564 below baseline. The leading explanation is **dark store stockout rate** (~44% of the movement), with confidence band **MEDIUM**. The leading contributing store is **DS121**. Recommended action: **L2_cross_store_transfer \u2014 Cross-store inventory transfer (move stock from neighboring store with surplus)**.\n\n**Caveat (MEDIUM):** Quantitative decomposition points to 'dark_store_stockout_rate' as the largest single contributor (~44%), but this is presented as the leading explanation, not a confirmed one. Customer Voice evidence independently supports this explanation. 26% of the movement remains unexplained.",
+    "narrative_dark_store_ops_manager": "**Store DS121 \u2014 2026-08-22 | Operational Alert**\n\nA **dark store stockout rate** pattern has been detected at **DS121**. Confidence level: **MEDIUM**. Recommended action: **L2_cross_store_transfer \u2014 Cross-store inventory transfer (move stock from neighboring store with surplus)**.\n\n**Caveat (MEDIUM):** Quantitative decomposition points to 'dark_store_stockout_rate' as the largest single contributor (~44%), but this is presented as the leading explanation, not a confirmed one. Customer Voice evidence independently supports this explanation. 26% of the movement remains unexplained."
+  },
+  "memory_result": null,
+  "telemetry": {
+    "run_id": "ac9656f7",
+    "finding_id": "FIND-KPI-zone_gmv-Z012-20260822-01",
+    "final_outcome": "QUALIFY",
+    "total_latency_ms": 22463.62,
+    "total_llm_calls": 0,
+    "total_tokens": 0,
+    "total_cost_usd": 0
+  },
+  "error": null
+}
