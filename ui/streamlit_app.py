@@ -45,6 +45,7 @@ st.markdown(PRAXIS_CSS, unsafe_allow_html=True)
 # ─── Backend imports ─────────────────────────────────────────────────────────
 from praxis.orchestration.pipeline import run_pipeline, run_all_kpis
 from praxis.synthetic.generator import get_scenario
+from praxis.synthetic.seed_memory import seed_decision1_memory
 from praxis.c1_data_foundation.entitlements import Persona
 from praxis.c5_memory.gateway import (
     _get_conn, admit_decision_memory, admit_outcome_memory,
@@ -84,10 +85,18 @@ def _init_state():
         "feedback_msg":    None,
         "last_admitted_dm_id": None,
         "past_decisions":  [],
+        "memory_seeded":   False,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
             st.session_state[k] = v
+
+    if not st.session_state.get("memory_seeded", False):
+        try:
+            seed_decision1_memory(verbose=False)
+            st.session_state.memory_seeded = True
+        except Exception:
+            pass
 
 
 _init_state()
