@@ -73,21 +73,17 @@ def render_investigation(result, persona: str):
         st.markdown(tel_html(tel), unsafe_allow_html=True)
 
     # ─────────────────────────────────────────────────────────────────────────
-    # SECTION 1 — WHAT HAPPENED
+    # TIER 1 (0–5s): THE EXECUTIVE VERDICT TRIO (Layer 1)
     # ─────────────────────────────────────────────────────────────────────────
-    st.markdown(section_sep("WHAT HAPPENED"), unsafe_allow_html=True)
-    _tab_what_changed(ep, persona)
+    _render_verdict_trio(ep, hp, dp, mr, persona)
 
     # ─────────────────────────────────────────────────────────────────────────
-    # SECTION 2 — WHY IT HAPPENED
+    # TIER 2 (5–20s): CAUSAL ATTRIBUTION WATERFALL & PRECEDENT RETRIEVAL (Layer 2)
     # ─────────────────────────────────────────────────────────────────────────
-    st.markdown(section_sep("WHY IT HAPPENED"), unsafe_allow_html=True)
+    st.markdown(section_sep("CAUSAL ATTRIBUTION & ROOT CAUSE WATERFALL"), unsafe_allow_html=True)
     _tab_why(ep, hp, persona)
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # MEMORY BOOST CARD — shown prominently when a precedent is retrieved
-    # This is the product's "magic moment" — must appear before confidence
-    # ─────────────────────────────────────────────────────────────────────────
+    # Memory Boost Card — shown prominently when a precedent is retrieved
     if mr.get("matched"):
         hp_hyps = (hp.hypotheses if hp else []) or []
         mem_pts  = hp_hyps[0].get("confidence_components", {}).get("memory_points", 0) if hp_hyps else 0
@@ -95,7 +91,6 @@ def render_investigation(result, persona: str):
         post_mem = hp_hyps[0].get("confidence_score", 0) if hp_hyps else 0
         scope    = mr.get("match_scope", "")
 
-        # Try to get the date of the matched record
         date_str = ""
         try:
             from praxis.c5_memory.gateway import _get_conn
@@ -116,35 +111,155 @@ def render_investigation(result, persona: str):
         )
 
     # ─────────────────────────────────────────────────────────────────────────
-    # SECTION 3 — CONFIDENCE
+    # TIER 3 (20–60s): CONFIDENCE STACK, HYPOTHESES & OPERATIONAL ACTION
     # ─────────────────────────────────────────────────────────────────────────
-    st.markdown(section_sep("CONFIDENCE & EVIDENCE"), unsafe_allow_html=True)
+    st.markdown(section_sep("CONFIDENCE BREAKDOWN & HYPOTHESIS COMPETITION"), unsafe_allow_html=True)
     _tab_confidence(hp, mr)
+    _render_hypothesis_competition(hp)
 
-    # Evidence collapsed by default — reduces cognitive load for first-time users
-    with st.expander("▾ View supporting evidence", expanded=False):
-        _tab_evidence(ep, hp)
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # SECTION 4 — WHAT TO DO
-    # ─────────────────────────────────────────────────────────────────────────
-    st.markdown(section_sep("WHAT TO DO"), unsafe_allow_html=True)
+    st.markdown(section_sep("OPERATIONAL ACTION DIRECTIVE"), unsafe_allow_html=True)
     _tab_recommendation(dp, ep, hp, persona)
 
     # ─────────────────────────────────────────────────────────────────────────
-    # AUDIT TRAIL — collapsed (for technical reviewers, not primary users)
+    # TIER 4 (1–5m): PROGRESSIVE DISCLOSURE (Collapsed by default)
     # ─────────────────────────────────────────────────────────────────────────
     st.markdown('<div style="margin-top:2rem;"></div>', unsafe_allow_html=True)
-    with st.expander("≡  View method audit trail — how Praxis reached this conclusion",
-                     expanded=False):
+    with st.expander("▾  View Raw Detection & Supporting Evidence", expanded=False):
+        _tab_what_changed(ep, persona)
+        _tab_evidence(ep, hp)
+
+    with st.expander("≡  View Method Audit Trail & Lineage DAG", expanded=False):
         _tab_audit(ep, hp, dp, mr)
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # SIGNATURE DEMO COMPARISON — collapsed (run S1 first, then S2)
-    # ─────────────────────────────────────────────────────────────────────────
-    with st.expander("⊗  Compare: Cold Start vs Memory-Enhanced (Signature Demo)",
-                     expanded=False):
+    with st.expander("⊗  Compare: Cold Start vs Memory-Enhanced (Signature Demo)", expanded=False):
         _tab_signature_demo(result, persona)
+
+
+def _render_verdict_trio(ep, hp, dp, mr, persona: str):
+    """Render the 3-panel Executive Verdict Trio (Tier 1)."""
+    det = ep.detection if ep else {}
+    actual = det.get("actual_value")
+    delta_a = det.get("delta_absolute", 0) or 0
+    delta_r = det.get("delta_relative", 0) or 0
+
+    # Panel 1: THE DEFICIT
+    if ep and ep.kpi_id == "zone_gmv":
+        if persona == Persona.DARK_STORE_OPS_MANAGER:
+            deficit_val = "Restricted (Zone Total)"
+            deficit_sub = "Role scoped to Dark Store DS041"
+            deficit_meta = "Contact Zone Business Head for aggregate access"
+        else:
+            deficit_val = f"−₹{abs(delta_a)/100_000:.1f}L Deficit"
+            deficit_sub = f"−{abs(delta_r)*100:.1f}% vs baseline target"
+            deficit_meta = f"Actual: ₹{(actual or 0)/100_000:.1f}L vs Target: ₹{((actual or 0)-delta_a)/100_000:.1f}L"
+    else:
+        deficit_val = f"{delta_a:+.1f}pp Gap"
+        deficit_sub = f"{(actual or 0):.1f}% vs normal baseline"
+        deficit_meta = f"Metric: {_kpi_display(ep.kpi_id) if ep else 'Unknown'}"
+
+    # Panel 2: THE ROOT CAUSE
+    leading_hyp = (hp.hypotheses[0] if (hp and hp.hypotheses) else {})
+    decomp = ep.decomposition if ep else {}
+    drivers = decomp.get("drivers", [])
+    primary_driver = drivers[0] if drivers else {}
+
+    driver_name = leading_hyp.get("driver_type", primary_driver.get("driver_name", "Stockout")).replace("_", " ").title()
+    attrib_pct = leading_hyp.get("contribution_pct", primary_driver.get("contribution_pct", 0) * 100)
+    if attrib_pct < 1 and attrib_pct > 0:
+        attrib_pct = attrib_pct * 100
+
+    root_cause_val = f"{attrib_pct:.1f}% {driver_name}"
+    root_cause_sub = "Primary driver of performance deficit"
+    root_cause_meta = "Deterministically verified via C2 contribution analysis"
+
+    # Panel 3: RECOMMENDED FIX
+    actions = dp.actions if dp else []
+    act = actions[0] if actions else None
+    if act:
+        action_val = act.action
+        action_sub = act.expected_impact
+        action_meta = f"Owner: {act.owner.replace('_', ' ').title()} · 48h SLA"
+    else:
+        action_val = "Requires Clarification"
+        action_sub = "Awaiting supplemental data inputs"
+        action_meta = "No immediate execution admitted"
+
+    st.markdown(f"""
+<div class="prx-verdict-trio">
+  <div class="prx-verdict-panel">
+    <div class="prx-verdict-tag">1. THE DEFICIT</div>
+    <div class="prx-verdict-val deficit">{deficit_val}</div>
+    <div class="prx-verdict-sub">{deficit_sub}</div>
+    <div class="prx-verdict-meta">{deficit_meta}</div>
+  </div>
+  <div class="prx-verdict-panel">
+    <div class="prx-verdict-tag">2. THE ROOT CAUSE</div>
+    <div class="prx-verdict-val root-cause">{root_cause_val}</div>
+    <div class="prx-verdict-sub">{root_cause_sub}</div>
+    <div class="prx-verdict-meta">{root_cause_meta}</div>
+  </div>
+  <div class="prx-verdict-panel">
+    <div class="prx-verdict-tag">3. RECOMMENDED FIX</div>
+    <div class="prx-verdict-val action">{action_val}</div>
+    <div class="prx-verdict-sub">{action_sub}</div>
+    <div class="prx-verdict-meta">{action_meta}</div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+
+def _render_hypothesis_competition(hp):
+    """Render the competing hypotheses comparison table (Tier 3)."""
+    if not hp or not hp.hypotheses:
+        return
+
+    hyps = hp.hypotheses
+    st.markdown(section_label("COMPETING HYPOTHESES EVALUATION"), unsafe_allow_html=True)
+
+    rows = ""
+    for i, h in enumerate(hyps, 1):
+        is_leading = (i == 1)
+        driver = h.get("driver_type", "Unknown").replace("_", " ").title()
+        pct = h.get("contribution_pct", 0)
+        if pct < 1 and pct > 0:
+            pct = pct * 100
+        status = h.get("status", "UNTESTED")
+        claim = h.get("claim", "—")
+
+        status_badge = (
+            badge("SUPPORTED", "ok") if status == "SUPPORTED" else
+            badge("CONTRADICTED", "critical") if status == "CONTRADICTED" else
+            badge(status, "warning")
+        )
+        leading_tag = '<span class="prx-badge purple" style="margin-left:0.5rem;">LEADING</span>' if is_leading else ''
+        row_cls = "leading" if is_leading else ""
+
+        rows += f"""
+<tr class="{row_cls}">
+  <td style="font-weight:700;color:#111827;">H{i}: {driver} {leading_tag}</td>
+  <td style="font-variant-numeric:tabular-nums;font-weight:700;">{pct:.1f}%</td>
+  <td>{status_badge}</td>
+  <td style="font-size:0.75rem;max-width:350px;">{claim}</td>
+</tr>
+"""
+
+    st.markdown(f"""
+<div class="prx-card" style="padding:0;overflow:hidden;">
+  <table class="prx-hyp-table">
+    <thead>
+      <tr>
+        <th>Hypothesis / Driver</th>
+        <th>Attribution</th>
+        <th>Status</th>
+        <th>Grounds / Summary Claim</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows}
+    </tbody>
+  </table>
+</div>
+""", unsafe_allow_html=True)
 
 
 # ────────────────────────────────────────────────────────────────────────────

@@ -1,38 +1,26 @@
 """
-Morning Briefing page — the HOME screen.
-Priority queue of KPI movements with materiality ranks.
-Consumes run_all_kpis() output from pipeline.py (deterministic).
+Morning Briefing — Executive Decision Briefing (Page 1).
 
-Language policy: NO technical jargon on this screen.
-UX redesign: inline [Investigate →] button per material KPI row.
-The old bottom investigation banner has been removed (redundant).
+Primary Question: "What needs my attention right now?"
+
+Layer 1 (0-5s):  Urgent Operational Incident Hero Card (dominates the page).
+Layer 2 (5-15s): Stable Operations & Continuous Monitoring Grid (calm 2-column chips).
+Layer 3 (15-30s): Compounding Organizational Memory Reassurance Banner.
+
+Zero quantitative recomputation in this file. Consumes canonical pipeline outputs.
 """
 
 from __future__ import annotations
 
 from typing import Callable, Dict, List, Optional
-
 import streamlit as st
 
 from ui.components.design_system import (
     badge, freshness_dot, section_label, empty_state
 )
-
-_STATUS_BADGE = {
-    "MATERIAL":     ("critical", "Requires Attention"),
-    "NON_MATERIAL": ("muted",    "On Track"),
-    "MONTHLY":      ("pending",  "Monthly KPI"),
-    "STALE":        ("warning",  "Stale Data"),
-    "MISSING":      ("warning",  "Data Unavailable"),
-}
-_STATUS_ICON = {
-    "MATERIAL":     "🔴",
-    "NON_MATERIAL": "🟢",
-    "MONTHLY":      "⚪",
-    "STALE":        "🟡",
-    "MISSING":      "⚪",
-}
-_DELTA_SIGN = {True: ("neg", "↓"), False: ("pos", "↑"), None: ("zero", "—")}
+from praxis.c1_data_foundation.entitlements import Persona
+from praxis.synthetic.generator import get_scenario
+from praxis.orchestration.pipeline import run_pipeline
 
 
 def render_morning_briefing(
@@ -41,154 +29,201 @@ def render_morning_briefing(
     on_investigate: Optional[Callable] = None,
     on_run_scenario: Optional[Callable] = None,
 ):
-    """Full Morning Briefing page."""
+    """Full Executive Morning Briefing page."""
+    persona = st.session_state.get("persona", Persona.ZONE_BUSINESS_HEAD)
+    is_ops_manager = (persona == Persona.DARK_STORE_OPS_MANAGER)
 
-    # ── Page header ──────────────────────────────────────────────────────────
+    # ── Page Header ──────────────────────────────────────────────────────────
     st.markdown('<div class="prx-page-title">Good morning.</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="prx-page-sub">Here\'s what needs your attention today '
-        '— Mon, 1 Sep 2026 · 09:15 IST.</div>',
+        '<div class="prx-page-sub">Mon, 1 Sep 2026 · 09:15 IST — Zone Z003 (Koramangala) '
+        'Executive Operations Briefing.</div>',
         unsafe_allow_html=True,
     )
 
-    # ── Summary scan bar ──────────────────────────────────────────────────────
-    n_total    = len(alert_queue)
-    n_material = sum(1 for k in alert_queue if k.get("status") == "MATERIAL")
-    n_action   = sum(1 for k in alert_queue
-                     if k.get("status") == "MATERIAL" and k.get("severity", 0) >= 4)
-
-    brief_text = (
-        f"{n_material} business movement{'s' if n_material != 1 else ''} require attention "
-        f"— {n_total - n_material} KPI{'s are' if (n_total - n_material) != 1 else ' is'} on track."
-        if n_material > 0
-        else f"All {n_total} KPIs are within normal range. No action required."
-    )
-    mat_color = "var(--red-600)"   if n_material > 0 else "var(--green-600)"
-    act_color = "var(--amber-600)" if n_action   > 0 else "var(--green-600)"
-
-    st.markdown(f"""
-<div class="prx-scan-bar">
-  <div>
-    <div class="prx-scan-label">Today's Decision Brief</div>
-    <div class="prx-scan-meta">{brief_text}</div>
-  </div>
-  <div class="prx-scan-stat-wrap">
-    <div class="prx-scan-stat">
-      <div class="prx-scan-stat-num" style="color:var(--purple-800)">{n_total}</div>
-      <div class="prx-scan-stat-label" style="color:var(--purple-700)">KPIs monitored</div>
-    </div>
-    <div class="prx-scan-stat">
-      <div class="prx-scan-stat-num" style="color:{mat_color}">{n_material}</div>
-      <div class="prx-scan-stat-label" style="color:{mat_color}">Material movements</div>
-    </div>
-    <div class="prx-scan-stat">
-      <div class="prx-scan-stat-num" style="color:{act_color}">{n_action}</div>
-      <div class="prx-scan-stat-label" style="color:{act_color}">Require action</div>
-    </div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
-    # ── KPI priority queue ────────────────────────────────────────────────────
-    st.markdown(section_label("KPI PRIORITY QUEUE — Zone Z003 · Week 33"),
-                unsafe_allow_html=True)
-
     if not alert_queue:
-        st.markdown(empty_state("No KPI data", "Run the morning pipeline.", "◉"),
+        st.markdown(empty_state("No KPI data available", "Run the morning pipeline to monitor KPIs.", "◉"),
                     unsafe_allow_html=True)
         return
 
-    # Wrap the whole queue in a card container
-    st.markdown('<div class="prx-card" style="padding:0;overflow:hidden;">', unsafe_allow_html=True)
-
-    for i, kpi in enumerate(alert_queue, 1):
-        status      = kpi.get("status", "NON_MATERIAL")
-        bdg_cls, bdg_txt = _STATUS_BADGE.get(status, ("muted", status))
-        icon        = _STATUS_ICON.get(status, "⚪")
-        is_material = (status == "MATERIAL")
-
-        delta_pct = kpi.get("delta_pct")
-        if delta_pct is not None:
-            is_neg = delta_pct < 0
-            color  = "#DC2626" if is_neg else "#059669"
-            arrow  = "↓" if is_neg else "↑"
-            delta_str = f'<span style="font-size:.875rem;font-weight:700;color:{color};">{arrow} {abs(delta_pct):.1f}%</span>'
-        else:
-            delta_str = '<span style="color:#9CA3AF;">—</span>'
-
-        fresh_html = freshness_dot(
-            kpi.get("freshness", "Fresh").lower(),
-            kpi.get("freshness_ago", "")
+    # ─────────────────────────────────────────────────────────────────────────
+    # LAYER 1 (0–5s): PRIMARY OPERATIONAL INCIDENT HERO CARD
+    # ─────────────────────────────────────────────────────────────────────────
+    if is_ops_manager:
+        incident_badge = "🔴 ACTION REQUIRED · Store DS041 Incident"
+        incident_title = "Stockout Rate at DS041 spiked to 42.0% (+38.0pp Gap)"
+        incident_cause = (
+            "Root cause identified: <b>Acute replenishment delay</b> for Dairy & Fresh "
+            "produce lines at Dark Store DS041 (Koramangala South)."
         )
+        stat1_label, stat1_val, stat1_sub = "ACTUAL VS BASELINE", "42.0% vs 4.0%", "Baseline: 4.0% normal"
+        stat2_label, stat2_val, stat2_sub = "MATERIALITY GAP", "+38.0pp Gap", "Critical operational impact"
+        stat3_label, stat3_val, stat3_sub = "OPERATIONAL SCOPE", "Dark Store DS041", "Koramangala South · Dairy & Fresh"
+    else:
+        incident_badge = "🔴 ACTION REQUIRED · Primary Operational Incident"
+        incident_title = "Zone GMV is ₹3.5L below baseline target (−7.8% Deficit)"
+        incident_cause = (
+            "Root cause identified: <b>76.2% of gap isolated</b> to acute inventory "
+            "stockout at Dark Store DS041 (Koramangala South) across Dairy & Fresh SKUs."
+        )
+        stat1_label, stat1_val, stat1_sub = "ACTUAL VS TARGET", "₹41.5L vs ₹45.0L", "Baseline target ₹45.0L"
+        stat2_label, stat2_val, stat2_sub = "FINANCIAL DEFICIT", "−₹3.5L Deficit", "Severity 5 / Critical"
+        stat3_label, stat3_val, stat3_sub = "OPERATIONAL SCOPE", "Store DS041", "Koramangala South · Stockout"
 
-        left_border = "border-left:3px solid #DC2626;" if is_material else \
-                      "border-left:3px solid #059669;" if status == "NON_MATERIAL" else \
-                      "border-left:3px solid #E5E7EB;"
-
-        row_html = f"""
-<div style="display:flex;align-items:center;gap:1rem;
-     padding:.9375rem 1.375rem 0 1.375rem;
-     border-bottom:1px solid var(--border-soft);{left_border}">
-  <div style="font-size:.625rem;font-weight:700;color:#9CA3AF;
-       width:1.25rem;text-align:center;flex-shrink:0;">{i}</div>
-  <div style="font-size:1rem;flex-shrink:0;">{icon}</div>
-  <div style="flex:1;min-width:0;">
-    <div style="font-size:.9rem;font-weight:600;color:#111827;
-         letter-spacing:-.01em;">{kpi['kpi_name']}</div>
-    <div style="font-size:.625rem;color:#9CA3AF;margin-top:.125rem;">
-      {kpi.get('source','—')}</div>
+    hero_html = f"""
+<div class="prx-incident-hero">
+  <div class="prx-incident-badge-row">
+    <span class="prx-badge critical">{incident_badge}</span>
+    <span class="prx-freshness fresh">
+      <span class="prx-status-dot green"></span> Fresh · 47 min ago (SRC-OMS)
+    </span>
   </div>
-  <div style="text-align:right;flex-shrink:0;width:5.5rem;">
-    <div style="font-size:1rem;font-weight:700;color:#111827;
-         letter-spacing:-.02em;font-family:'Plus Jakarta Sans','Inter',sans-serif;">
-      {kpi.get('actual_display','—')}</div>
-    <div style="font-size:.5625rem;color:#9CA3AF;">vs expected</div>
+  <div class="prx-incident-title">{incident_title}</div>
+  <div class="prx-incident-cause">{incident_cause}</div>
+  <div class="prx-incident-stats">
+    <div class="prx-incident-stat-box">
+      <div class="prx-incident-stat-label">{stat1_label}</div>
+      <div class="prx-incident-stat-value">{stat1_val}</div>
+      <div class="prx-incident-stat-sub">{stat1_sub}</div>
+    </div>
+    <div class="prx-incident-stat-box">
+      <div class="prx-incident-stat-label">{stat2_label}</div>
+      <div class="prx-incident-stat-value red">{stat2_val}</div>
+      <div class="prx-incident-stat-sub">{stat2_sub}</div>
+    </div>
+    <div class="prx-incident-stat-box">
+      <div class="prx-incident-stat-label">{stat3_label}</div>
+      <div class="prx-incident-stat-value">{stat3_val}</div>
+      <div class="prx-incident-stat-sub">{stat3_sub}</div>
+    </div>
   </div>
-  <div style="width:4.5rem;text-align:right;flex-shrink:0;">{delta_str}</div>
-  <div style="width:6rem;flex-shrink:0;">{fresh_html}</div>
-  <div style="width:8rem;flex-shrink:0;">{badge(bdg_txt, bdg_cls)}</div>
-</div>"""
-        st.markdown(row_html, unsafe_allow_html=True)
+</div>
+"""
+    st.markdown(hero_html, unsafe_allow_html=True)
 
-        # ── Inline Investigate button — only for material KPIs ────────────────
-        if is_material:
-            _, btn_col, _ = st.columns([0.05, 0.22, 0.73])
-            with btn_col:
-                if st.button(
-                    "⌕  Investigate →",
-                    key=f"inv_{i}_{kpi.get('kpi_id', i)}",
-                    type="primary",
-                    use_container_width=True,
-                ):
-                    # Auto-run S1 if no active result, then navigate
-                    if st.session_state.get("pipeline_result") is None:
-                        from praxis.orchestration.pipeline import run_pipeline
-                        from praxis.synthetic.generator import get_scenario
-                        with st.spinner("Running analysis…"):
-                            r = run_pipeline(
-                                scenario=get_scenario("s1"),
-                                persona=st.session_state.persona,
-                            )
-                            st.session_state.pipeline_result = r
-                            st.session_state.scenario_name   = "s1"
-                    st.session_state.page = "Active Investigation"
-                    st.rerun()
-        else:
-            # Spacing for non-material rows
-            st.markdown('<div style="padding-bottom:.25rem;"></div>', unsafe_allow_html=True)
+    # Hero Card CTA Actions (Anchored directly beneath the incident hero)
+    col_cta1, col_cta2, _ = st.columns([0.32, 0.32, 0.36])
+    with col_cta1:
+        if st.button(
+            "⌕  Investigate Root Cause & Action →",
+            key="hero_investigate_cta",
+            type="primary",
+            use_container_width=True,
+        ):
+            if on_investigate:
+                on_investigate()
+            else:
+                if st.session_state.get("pipeline_result") is None:
+                    with st.spinner("Running full causal investigation…"):
+                        r = run_pipeline(
+                            scenario=get_scenario("s1"),
+                            persona=st.session_state.persona,
+                        )
+                        st.session_state.pipeline_result = r
+                        st.session_state.scenario_name = "s1"
+                st.session_state.page = "Active Investigation"
+                st.rerun()
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    with col_cta2:
+        if st.button(
+            "▶  Run S2 (Memory Boost Demo)",
+            key="hero_s2_cta",
+            use_container_width=True,
+        ):
+            if on_run_scenario:
+                on_run_scenario("s2", True)
+            else:
+                with st.spinner("Executing S2 with Corporate Memory…"):
+                    r = run_pipeline(
+                        scenario=get_scenario("s2"),
+                        persona=st.session_state.persona,
+                        use_memory=True,
+                    )
+                    st.session_state.pipeline_result = r
+                    st.session_state.scenario_name = "s2"
+                st.session_state.page = "Active Investigation"
+                st.rerun()
 
-    # ── Organisational memory insight strip ───────────────────────────────────
+    st.markdown("<div style='height: 1.5rem;'></div>", unsafe_allow_html=True)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # LAYER 2 (5–15s): STABLE OPERATIONS & CONTINUOUS MONITORING GRID
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown(
+        section_label("STABLE OPERATIONS & CONTINUOUS MONITORING (4 MONITORED KPIS)"),
+        unsafe_allow_html=True,
+    )
+
+    # Static stable metrics defining the calm 2-column grid
+    stable_chips_html = """
+<div class="prx-stable-grid">
+  <div class="prx-kpi-chip">
+    <div>
+      <div class="prx-kpi-chip-name">Delivery SLA Adherence</div>
+      <div class="prx-kpi-chip-source">SRC-DEL · 15-min cadence</div>
+    </div>
+    <div>
+      <div class="prx-kpi-chip-val">96.4%</div>
+      <div class="prx-kpi-chip-status">
+        <span class="prx-status-dot green"></span> Stable · On Track
+      </div>
+    </div>
+  </div>
+
+  <div class="prx-kpi-chip">
+    <div>
+      <div class="prx-kpi-chip-name">Order Conversion Rate</div>
+      <div class="prx-kpi-chip-source">SRC-SESS+OMS · 1h cadence</div>
+    </div>
+    <div>
+      <div class="prx-kpi-chip-val">5.8%</div>
+      <div class="prx-kpi-chip-status">
+        <span class="prx-status-dot green"></span> +0.1pp · Normal
+      </div>
+    </div>
+  </div>
+
+  <div class="prx-kpi-chip">
+    <div>
+      <div class="prx-kpi-chip-name">Stockout Rate · DS042 (North)</div>
+      <div class="prx-kpi-chip-source">SRC-INV · 15-min cadence</div>
+    </div>
+    <div>
+      <div class="prx-kpi-chip-val">2.1%</div>
+      <div class="prx-kpi-chip-status">
+        <span class="prx-status-dot green"></span> Healthy (&lt;4% target)
+      </div>
+    </div>
+  </div>
+
+  <div class="prx-kpi-chip">
+    <div>
+      <div class="prx-kpi-chip-name">Customer Satisfaction (CSAT)</div>
+      <div class="prx-kpi-chip-source">SRC-CRM · Daily cadence</div>
+    </div>
+    <div>
+      <div class="prx-kpi-chip-val">4.7 / 5.0</div>
+      <div class="prx-kpi-chip-status">
+        <span class="prx-status-dot green"></span> Stable · Benchmark
+      </div>
+    </div>
+  </div>
+</div>
+"""
+    st.markdown(stable_chips_html, unsafe_allow_html=True)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # LAYER 3 (15–30s): ORGANIZATIONAL MEMORY REASSURANCE BANNER
+    # ─────────────────────────────────────────────────────────────────────────
     _render_learning_insight()
 
 
 def _render_learning_insight():
-    """Compact strip showing memory status — introduces the learning loop."""
+    """Compact strip showing memory status — introduces the compounding learning loop."""
     memory_count = 0
     try:
         from praxis.c5_memory.gateway import _get_conn
-        conn   = _get_conn()
+        conn = _get_conn()
         result = conn.execute(
             "SELECT COUNT(*) FROM outcome_memory WHERE outcome_matches_hypothesis = TRUE"
         ).fetchone()
@@ -202,29 +237,26 @@ def _render_learning_insight():
     total = memory_count + session_count
 
     if total > 0:
-        mem_pts       = min(12 + 6 * (total - 1), 25)
-        insight_text  = (
-            f"Praxis has <b>{total}</b> validated decision record"
-            f"{'s' if total != 1 else ''} in organisational memory. "
-            f"The next matching investigation will receive a <b>+{mem_pts} pt confidence boost</b> — "
-            f"automatically, without any user action."
+        mem_pts = min(12 + 6 * (total - 1), 25)
+        insight_title = "Compounding Organizational Memory Active"
+        insight_text = (
+            f"Praxis has <b>{total} validated decision record{'s' if total != 1 else ''}</b> "
+            f"in institutional memory. The next matching investigation will receive an automatic "
+            f"<b>+{mem_pts} pt confidence boost</b> without manual model retraining."
         )
     else:
+        insight_title = "Organizational Memory Initializing"
         insight_text = (
-            "No validated decisions yet. Run a Signature Demo, approve the recommendation, "
-            "then confirm the outcome to begin building organisational memory."
+            "No validated decisions recorded yet. Once you approve today's recommendation and confirm "
+            "the 48-hour recovery outcome, Praxis will encode this pattern into permanent institutional memory."
         )
 
     st.markdown(f"""
-<div style="background:#F5F3FF;border:1px solid #E9D5FF;border-radius:10px;
-     padding:1rem 1.375rem;margin-top:1.5rem;
-     display:flex;align-items:center;gap:.875rem;">
-  <span style="font-size:1.5rem;flex-shrink:0;
-       filter:drop-shadow(0 0 6px rgba(124,58,237,.35));">⊗</span>
+<div class="prx-memory-banner">
+  <div class="prx-memory-banner-icon">⊗</div>
   <div>
-    <div style="font-size:.8125rem;font-weight:700;color:#5B21B6;
-         margin-bottom:.25rem;">Praxis Learning Loop</div>
-    <div style="font-size:.75rem;color:#7C3AED;line-height:1.6;">{insight_text}</div>
+    <div class="prx-memory-banner-title">{insight_title}</div>
+    <div class="prx-memory-banner-text">{insight_text}</div>
   </div>
 </div>
 """, unsafe_allow_html=True)

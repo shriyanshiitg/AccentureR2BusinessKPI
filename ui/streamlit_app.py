@@ -26,6 +26,23 @@ import datetime
 # Make sure praxis package is importable
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+# Prevent transformers multimodal dynamic import crashes on environments lacking torchvision
+try:
+    import torchvision
+except ImportError:
+    from unittest.mock import MagicMock
+    _tv = MagicMock()
+    for _mod in [
+        "torchvision",
+        "torchvision.transforms",
+        "torchvision.transforms.v2",
+        "torchvision.transforms.v2.functional",
+        "torchvision.ops",
+        "torchvision.ops.boxes",
+        "torchvision.io",
+    ]:
+        sys.modules[_mod] = _tv
+
 import streamlit as st
 from dotenv import load_dotenv
 load_dotenv()
@@ -36,6 +53,27 @@ st.set_page_config(
     page_icon="⬡",
     layout="wide",
     initial_sidebar_state="expanded",
+)
+
+# ─── Ensure sidebar state is expanded in client browser storage ───────────────
+import streamlit.components.v1 as components
+components.html(
+    """
+    <script>
+    try {
+        const p = window.parent;
+        p.localStorage.removeItem("stSidebarCollapsed");
+        p.sessionStorage.removeItem("stSidebarCollapsed");
+        const sidebar = p.document.querySelector('[data-testid="stSidebar"]');
+        if (sidebar && sidebar.getAttribute("aria-expanded") === "false") {
+            const btn = p.document.querySelector('[data-testid="collapsedControl"] button');
+            if (btn) btn.click();
+        }
+    } catch (e) {}
+    </script>
+    """,
+    height=0,
+    width=0,
 )
 
 # ─── Inject design system CSS ────────────────────────────────────────────────
@@ -131,6 +169,19 @@ def _render_header():
 """, unsafe_allow_html=True)
 
 
+def _render_breadcrumb(page_title: str):
+    """Render the contextual breadcrumb hierarchy directly below the sticky header."""
+    st.markdown(f"""
+<div class="prx-breadcrumb">
+  <span class="prx-bc-item">{st.session_state.zone}</span>
+  <span class="prx-bc-sep">›</span>
+  <span class="prx-bc-item">{st.session_state.period}</span>
+  <span class="prx-bc-sep">›</span>
+  <span class="prx-bc-item active">{page_title}</span>
+</div>
+""", unsafe_allow_html=True)
+
+
 # ─── Sidebar Navigation ───────────────────────────────────────────────────────
 
 # Redesigned: 5 items across 2 sections. "Scenario Launcher" is NOT a nav item —
@@ -152,8 +203,7 @@ def _render_sidebar():
     """Render the enterprise sidebar — 5 items + persistent demo CTA."""
     with st.sidebar:
         # ── Logo ──────────────────────────────────────────────────────────────
-        persona_display = PERSONA_DISPLAY.get(st.session_state.persona, "Business Leader")
-        st.markdown(f"""
+        st.markdown("""
 <div class="prx-sidebar-logo">
   <div class="prx-sidebar-logo-mark">
     <div class="prx-sidebar-logo-icon">
@@ -165,25 +215,23 @@ def _render_sidebar():
   </div>
   <div class="prx-sidebar-logo-sub">KPI Intelligence to Action</div>
 </div>
-<div class="prx-sidebar-persona">
-  <div>
-    <span class="prx-sidebar-persona-label">Active Persona</span>
-    <span class="prx-sidebar-persona-name">{persona_display}</span>
-  </div>
-</div>""", unsafe_allow_html=True)
+<div class="prx-sidebar-group" style="margin-top:0.875rem;margin-bottom:0.375rem;">ROLE &amp; ENTITLEMENTS</div>
+""", unsafe_allow_html=True)
 
-        # Persona selector
-        persona_option = st.selectbox(
-            "Switch Persona",
-            ["Business Leader", "Operations Manager"],
-            index=0 if st.session_state.persona == Persona.ZONE_BUSINESS_HEAD else 1,
-            label_visibility="collapsed",
-            key="persona_select_sidebar",
-        )
-        new_persona = PERSONA_FROM_DISPLAY.get(persona_option, Persona.ZONE_BUSINESS_HEAD)
-        if new_persona != st.session_state.persona:
-            st.session_state.persona = new_persona
-            st.session_state.persona_label = persona_option
+        # Role button (simply show current role, click to switch)
+        persona_display = PERSONA_DISPLAY.get(st.session_state.persona, "Business Leader")
+        if st.button(
+            f"👤  {persona_display}  ⇄",
+            key="role_toggle_btn",
+            use_container_width=True,
+            help="Click to switch persona",
+        ):
+            if st.session_state.persona == Persona.ZONE_BUSINESS_HEAD:
+                st.session_state.persona = Persona.DARK_STORE_OPS_MANAGER
+                st.session_state.persona_label = "Operations Manager"
+            else:
+                st.session_state.persona = Persona.ZONE_BUSINESS_HEAD
+                st.session_state.persona_label = "Business Leader"
             st.rerun()
 
         st.markdown('<div class="prx-sidebar-divider"></div>', unsafe_allow_html=True)
@@ -207,21 +255,12 @@ def _render_sidebar():
 
         st.markdown('<div class="prx-sidebar-divider"></div>', unsafe_allow_html=True)
 
-        # ── Persistent Scenario Demo CTA ───────────────────────────────────────
-        st.markdown("""
-<div class="prx-sidebar-demo-btn">
-  <div class="prx-sidebar-demo-label">▶ Live Demo</div>
-  <div class="prx-sidebar-demo-title">Run Signature Demo</div>
-  <div class="prx-sidebar-demo-sub">S1 → S2 · Memory Proof</div>
-</div>""", unsafe_allow_html=True)
-
-        col_s1, col_s2 = st.columns(2)
-        with col_s1:
-            if st.button("S1 · Cold Start", key="quick_s1", use_container_width=True):
-                _run_and_navigate("s1", False)
-        with col_s2:
-            if st.button("S2 · Memory", key="quick_s2", use_container_width=True, type="primary"):
-                _run_and_navigate("s2", True)
+        # ── Persistent Scenario Demo CTA (Stacked, no multi-column overflow) ───
+        st.markdown('<div class="prx-sidebar-group" style="margin-bottom:0.25rem;">SIGNATURE DEMOS</div>', unsafe_allow_html=True)
+        if st.button("▶  S1 · Cold Start", key="quick_s1", use_container_width=True):
+            _run_and_navigate("s1", False)
+        if st.button("★  S2 · Memory Boost", key="quick_s2", use_container_width=True, type="primary"):
+            _run_and_navigate("s2", True)
 
         # ── System status footer ───────────────────────────────────────────────
         st.markdown("""
@@ -239,6 +278,8 @@ def main():
     _render_sidebar()
 
     page = st.session_state.page
+    _render_breadcrumb(page)
+
     result = st.session_state.pipeline_result
     persona = st.session_state.persona
     alert_queue = _get_alert_queue()
