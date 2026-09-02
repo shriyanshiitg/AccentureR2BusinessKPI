@@ -67,7 +67,8 @@ def build_decision_package(
         lever_id, driver_type, grain_key, period, leading_store_id, sku_info, persona
     )
     expected_impact = _build_expected_impact(
-        lever_id, kpi_id, delta_abs, delta_relative, llm_client
+        lever_id, kpi_id, delta_abs, delta_relative, llm_client,
+        contribution_pct=contribution_pct,
     )
     monitoring_plan = _build_monitoring_plan(lever_id, outcome, memory_ctx)
 
@@ -364,29 +365,51 @@ def _build_action_text(lever_id, driver_type, grain_key, period,
     return templates.get(lever_id, f"Execute {lever_id} at {grain_key}.")
 
 
-def _build_expected_impact(lever_id, kpi_id, delta_abs, delta_relative, llm_client) -> str:
-    impact_templates = {
-        "L2_cross_store_transfer": (
+def _build_expected_impact(
+    lever_id: str, kpi_id: str, delta_abs: float, delta_relative: float,
+    llm_client, contribution_pct: float = 0.0
+) -> str:
+    """
+    Compute a deterministic expected impact string.
+    Includes a recoverable ₹ amount where computable (G2 fix).
+    contribution_pct × abs(delta_abs) = recoverable portion.
+    """
+    recoverable = abs(delta_abs) * (abs(contribution_pct) / 100.0) if contribution_pct else 0.0
+    rec_L = recoverable / 100_000  # convert to Lakhs
+    total_L = abs(delta_abs) / 100_000
+
+    if lever_id == "L2_cross_store_transfer":
+        if recoverable > 0 and total_L > 0:
+            return (
+                f"Recover ~₹{rec_L:.1f}L of ₹{total_L:.1f}L gap within 24–48h "
+                f"(stockout contribution: {abs(contribution_pct):.0f}% — deterministic attribution)."
+            )
+        return (
             f"If the stockout hypothesis is correct, resolving stock at the leading store "
-            f"is expected to recover a material portion of the {kpi_id} gap "
-            f"(~{abs(delta_relative or 0) * 100:.1f}% vs. baseline) within 24-48 hours."
-        ),
-        "L1_restock_sku_store": (
-            f"Restocking affected SKU(s) should recover the availability-driven "
-            f"portion of the conversion gap within 4-6 hours."
-        ),
-        "L3_add_rider_capacity": (
-            f"Adding riders to the affected shift is expected to reduce delivery SLA "
-            f"breaches during the peak window."
-        ),
-        "L4_approve_local_promo": (
-            f"A 3-day promo should partially offset the conversion dip in the zone "
-            f"during the promotional window."
-        ),
-        "L7_escalate_for_investigation": "Impact unknown — root cause not yet confirmed.",
-        "L8_monitor_no_action": "No action; monitor for resolution.",
-    }
-    return impact_templates.get(lever_id, f"Expected to address root cause of {kpi_id} movement.")
+            f"is expected to recover a material portion of the {kpi_id} gap within 24–48 hours."
+        )
+    if lever_id == "L1_restock_sku_store":
+        if recoverable > 0:
+            return (
+                f"Recover ~₹{rec_L:.1f}L through SKU restocking. "
+                f"Availability-driven portion resolves within 4–6 hours."
+            )
+        return "Restocking affected SKU(s) should recover the availability-driven portion within 4–6 hours."
+    if lever_id == "L3_add_rider_capacity":
+        return (
+            f"Adding riders to the affected shift expected to reduce SLA breaches "
+            f"and recover ~₹{rec_L:.1f}L of conversion loss during peak window."
+        ) if recoverable > 0 else "Adding riders expected to reduce delivery SLA breaches during peak window."
+    if lever_id == "L4_approve_local_promo":
+        return (
+            f"3-day promo expected to partially offset conversion dip, "
+            f"targeting recovery of ~₹{rec_L:.1f}L during promotional window."
+        ) if recoverable > 0 else "3-day promo should partially offset the conversion dip in the zone."
+    if lever_id == "L7_escalate_for_investigation":
+        return "Impact unknown — root cause not yet confirmed."
+    if lever_id == "L8_monitor_no_action":
+        return "No action; monitor for resolution."
+    return f"Expected to address root cause of {kpi_id} movement."
 
 
 def _build_monitoring_plan(lever_id, outcome, memory_ctx) -> str:
@@ -414,3 +437,49 @@ def _build_monitoring_plan(lever_id, outcome, memory_ctx) -> str:
         "Monitor the leading KPI metric at 24 hours and 48 hours post-action. "
         "Record outcome in Praxis memory to inform future similar findings."
     )
+
+
+def compute_counterfactual(actual_value: float, delta_abs: float, contribution_pct: float) -> Optional[float]:
+    """
+    Deterministic counterfactual: what would the KPI value have been
+    if the leading driver had NOT been present?
+
+    Formula: actual_value + (abs(delta_abs) × contribution_pct / 100)
+    i.e. we add back the portion of the gap that the leading driver explains.
+
+    Returns None if inputs are insufficient for a meaningful answer.
+    """
+    if not contribution_pct or contribution_pct <= 0:
+        return None
+    recoverable = abs(delta_abs) * (abs(contribution_pct) / 100.0)
+    return actual_value + recoverable
+
+
+def compute_downstream_risks(driver_type: str, kpi_id: str) -> list:
+    """
+    Rule-based downstream risk detection (G3 fix).
+    Returns list of dicts: {kpi_id, kpi_name, lag, description}
+    if the active driver appears as a known driver in another KPI's contract.
+
+    Purely deterministic — no LLM involved.
+    """
+    try:
+        from praxis.c1_data_foundation.kpi_contracts import KPI_CONTRACTS
+    except ImportError:
+        return []
+
+    risks = []
+    for other_kpi_id, contract in KPI_CONTRACTS.items():
+        if other_kpi_id == kpi_id:
+            continue  # skip the current KPI
+        if driver_type in contract.get("drivers", []):
+            grain_type = contract.get("grain_type", "day")
+            lag_str = "monthly lag" if grain_type == "month" else "same-day effect"
+            risks.append({
+                "affected_kpi_id": other_kpi_id,
+                "affected_kpi_name": contract.get("name", other_kpi_id),
+                "grain_type": grain_type,
+                "lag_description": lag_str,
+                "driver_type": driver_type,
+            })
+    return risks

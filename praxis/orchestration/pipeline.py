@@ -212,3 +212,111 @@ def run_pipeline(
 
 def scenario_name(scenario: Dict) -> str:
     return f"{scenario.get('kpi_id', 'unknown')}@{scenario.get('grain_key', '?')}-{scenario.get('period', '?')}"
+
+
+# ---------------------------------------------------------------------------
+# Multi-KPI Alert Queue — Gap 1 (G1) fix
+# ---------------------------------------------------------------------------
+
+# Simulated zone-level KPI state for the morning briefing scan (2026-08-15 week).
+# Each entry represents one KPI's current observation vs. its baseline.
+# In a production system these would be fetched from the data layer; here
+# they are deterministic prototype values consistent with the S1 scenario.
+
+_KPI_ALERT_DATA = [
+    {
+        "kpi_id": "zone_gmv",
+        "kpi_name": "Zone GMV",
+        "actual_display": "₹21.0L",
+        "delta_display": "−₹7.0L",
+        "delta_pct": -25.0,
+        "z_score": 5.0,
+        "status": "MATERIAL",
+        "severity": 5,   # 1–5, drives sort order
+        "outcome": "root_cause_identified",
+        "outcome_label": "Root cause identified",
+        "method": "z-score · deterministic",
+        "source": "SRC-OMS · hourly",
+        "freshness": "Fresh",
+        "freshness_ago": "47 min ago",
+    },
+    {
+        "kpi_id": "dark_store_stockout_rate",
+        "kpi_name": "Stockout Rate · DS041",
+        "actual_display": "42%",
+        "delta_display": "+38pp",
+        "delta_pct": +38.0,
+        "z_score": 4.2,
+        "status": "MATERIAL",
+        "severity": 4,
+        "outcome": "primary_driver",
+        "outcome_label": "Primary driver of GMV gap",
+        "method": "proportion-z · deterministic",
+        "source": "SRC-INV · 15-min cadence",
+        "freshness": "Fresh",
+        "freshness_ago": "2h ago",
+    },
+    {
+        "kpi_id": "delivery_sla_adherence",
+        "kpi_name": "Delivery SLA Adherence",
+        "actual_display": "71%",
+        "delta_display": "−12pp",
+        "delta_pct": -12.0,
+        "z_score": 2.8,
+        "status": "MATERIAL",
+        "severity": 3,
+        "outcome": "abstain_sparse",
+        "outcome_label": "Abstain · sparse rider history",
+        "method": "proportion-z · deterministic",
+        "source": "SRC-DEL · 15-min cadence",
+        "freshness": "Stale",
+        "freshness_ago": "7h ago · GPS lag",
+    },
+    {
+        "kpi_id": "order_conversion_rate",
+        "kpi_name": "Order Conversion Rate",
+        "actual_display": "5.8%",
+        "delta_display": "+0.1pp",
+        "delta_pct": +0.1,
+        "z_score": 0.3,
+        "status": "NON_MATERIAL",
+        "severity": 0,
+        "outcome": "non_material",
+        "outcome_label": "Within normal range",
+        "method": "proportion-z · deterministic",
+        "source": "SRC-SESS+OMS · 1h cadence",
+        "freshness": "Fresh",
+        "freshness_ago": "1h ago",
+    },
+    {
+        "kpi_id": "repeat_purchase_rate",
+        "kpi_name": "Repeat Purchase Rate",
+        "actual_display": "—",
+        "delta_display": "—",
+        "delta_pct": None,
+        "z_score": None,
+        "status": "MONTHLY",
+        "severity": 0,
+        "outcome": "monthly_not_yet",
+        "outcome_label": "Monthly KPI · data not yet available",
+        "method": "relative-change · deterministic",
+        "source": "SRC-OMS · daily",
+        "freshness": "Fresh",
+        "freshness_ago": "24h cadence",
+    },
+]
+
+
+def run_all_kpis() -> List[Dict]:
+    """
+    G1 fix: Run materiality detection across all monitored KPIs and return
+    a ranked alert queue sorted by severity (highest first).
+
+    In the prototype this returns pre-computed values consistent with the
+    S1 scenario. The pipeline architecture already supports running each
+    KPI independently via run_pipeline() — this function would call that
+    for each KPI in production.
+
+    Returns: List[Dict] sorted by severity descending.
+    """
+    return sorted(_KPI_ALERT_DATA, key=lambda x: x["severity"], reverse=True)

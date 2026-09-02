@@ -6,7 +6,7 @@
     "kpi_id": "zone_gmv",
     "grain_key": "Z012",
     "period": "2026-08-22",
-    "created_at": "2026-08-30T15:39:17.388666+05:30",
+    "created_at": "2026-08-31T13:48:41.323596+05:30",
     "source_version": "SRC-OMS-v2026-08-22",
     "terminal_outcome": "EVALUATED",
     "terminal_outcome_reason": null,
@@ -92,32 +92,32 @@
         "from_id": "SRC-OMS",
         "to_id": "SRC-OMS-v2026-08-22",
         "edge_type": "batch_version",
-        "created_at": "2026-08-30T15:39:17.388594+05:30"
+        "created_at": "2026-08-31T13:48:41.323596+05:30"
       },
       {
         "from_id": "SRC-OMS-v2026-08-22",
         "to_id": "AGG-Z012-20260822",
         "edge_type": "transformation",
-        "created_at": "2026-08-30T15:39:17.388604+05:30"
+        "created_at": "2026-08-31T13:48:41.323596+05:30"
       },
       {
         "from_id": "AGG-Z012-20260822",
         "to_id": "KPI-zone_gmv-Z012-20260822",
         "edge_type": "kpi_evaluation",
-        "created_at": "2026-08-30T15:39:17.388607+05:30"
+        "created_at": "2026-08-31T13:48:41.323596+05:30"
       },
       {
         "from_id": "KPI-zone_gmv-Z012-20260822",
         "to_id": "FIND-KPI-zone_gmv-Z012-20260822-01",
         "edge_type": "finding",
-        "created_at": "2026-08-30T15:39:17.388609+05:30"
+        "created_at": "2026-08-31T13:48:41.323596+05:30"
       }
     ]
   },
   "hypothesis_package": {
     "finding_id": "FIND-KPI-zone_gmv-Z012-20260822-01",
     "kpi_instance_id": "KPI-zone_gmv-Z012-20260822",
-    "generated_at": "2026-08-30T15:39:17.396370+05:30",
+    "generated_at": "2026-08-31T13:48:41.346832+05:30",
     "evidence_package_ref": "FIND-KPI-zone_gmv-Z012-20260822-01",
     "lineage_chain": [
       "SRC-OMS",
@@ -261,7 +261,7 @@
       "KPI-zone_gmv-Z012-20260822",
       "FIND-KPI-zone_gmv-Z012-20260822-01"
     ],
-    "generated_at": "2026-08-30T15:39:39.751001+05:30",
+    "generated_at": "2026-08-31T13:49:02.194479+05:30",
     "source_decision_outcome": "QUALIFY",
     "source_decision_scope": "finding",
     "actions": [
@@ -269,7 +269,7 @@
         "driver": "dark_store_stockout_rate",
         "controllable_lever": "L2_cross_store_transfer",
         "action": "Authorize cross-store inventory transfer of affected SKU(s) into DS121 from neighboring store with surplus inventory.",
-        "expected_impact": "If the stockout hypothesis is correct, resolving stock at the leading store is expected to recover a material portion of the zone_gmv gap (~28.0% vs. baseline) within 24-48 hours.",
+        "expected_impact": "Recover ~\u20b91.8L of \u20b94.0L gap within 24\u201348h (stockout contribution: 44% \u2014 deterministic attribution).",
         "owner": "zone_business_head",
         "confidence": "MEDIUM",
         "monitoring_plan": "Monitor the leading KPI metric at 24 hours and 48 hours post-action. If the gap does not narrow within 48 hours, trigger a follow-up investigation (L7-adjacent). This recommendation is QUALIFY (not ANSWER); outcome monitoring is mandatory."
@@ -282,10 +282,10 @@
   },
   "memory_result": null,
   "telemetry": {
-    "run_id": "ac9656f7",
+    "run_id": "ef1e1bfe",
     "finding_id": "FIND-KPI-zone_gmv-Z012-20260822-01",
     "final_outcome": "QUALIFY",
-    "total_latency_ms": 22463.62,
+    "total_latency_ms": 20871.39,
     "total_llm_calls": 0,
     "total_tokens": 0,
     "total_cost_usd": 0

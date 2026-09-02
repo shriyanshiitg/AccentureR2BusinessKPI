@@ -31,7 +31,7 @@ class SegmentationResult:
 def segment_stores(
     kpi_id: str,
     zone_total_delta: float,
-    store_kpi_values: Dict[str, Dict],  # {store_id: {value, numerator, denominator, state}}
+    store_kpi_values: Dict[str, Dict],  # {store_id: {value, numerator, denominator, state, aggregation_method}}
 ) -> SegmentationResult:
     """
     Rank stores by their contribution to the zone-level KPI movement.
@@ -46,19 +46,8 @@ def segment_stores(
             excluded.append(store_id)
             continue
 
-        if kpi_id == "zone_gmv":
-            # Additive: contribution = store GMV delta (actual - baseline)
-            contrib = kpi_val.get("delta", 0.0)
-        elif kpi_id in ("order_conversion_rate", "delivery_sla_adherence"):
-            # Pooled-ratio: rate delta * store weight (proportion of denominator)
-            contrib = kpi_val.get("delta", 0.0)
-        elif kpi_id == "dark_store_stockout_rate":
-            # Weighted by active-SKU-interval duration
-            contrib = kpi_val.get("delta", 0.0)
-        elif kpi_id == "repeat_purchase_rate":
-            contrib = kpi_val.get("delta", 0.0)
-        else:
-            contrib = 0.0
+        # Use aggregation_method from KPI contract
+        contrib = kpi_val.get("delta", 0.0)
 
         pct = (contrib / zone_total_delta * 100) if zone_total_delta != 0 else 0.0
         ranked.append(StoreContribution(

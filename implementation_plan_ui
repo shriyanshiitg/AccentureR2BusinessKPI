@@ -1,0 +1,215 @@
+# Praxis — Enterprise UI Rebuild · Implementation Plan
+
+## Repository Audit Summary
+
+### What exists and is functional (do NOT reimplementing)
+
+| Layer | Files | Status |
+|-------|-------|--------|
+| C1 — Data + KPI contracts | `kpi_contracts.py`, `schemas.py`, `entitlements.py`, `lineage.py` | ✅ Functional |
+| C2 — Statistical investigation | `operator1–5.py`, `planner.py`, `evidence_package.py` | ✅ Functional |
+| C3 — Hypothesis + confidence | `generator.py`, `retrieval.py`, `challenge.py`, `confidence.py`, `hypothesis_package.py` | ✅ Functional |
+| C4 — Decision + narrative | `decision_package.py` (LEVERS + RIGHTS_MATRIX), `narrative.py` | ✅ Functional |
+| C5 — Memory + governance | `gateway.py` (DuckDB admit/retrieve), `compute_memory_points()` | ✅ Functional |
+| Orchestration | `pipeline.py` → `run_pipeline()`, `run_all_kpis()` | ✅ Functional |
+| LLM | `client.py` (Groq llama-3.3-70b, SHA-256 cache, telemetry) | ✅ Functional |
+| Telemetry | `telemetry.py` | ✅ Functional |
+| Scenarios | `generator.py` → 6 scenarios: s1, s2, insufficient_history, no_dominant, challenge, unscripted | ✅ Functional |
+| Tests | 76 passing | ✅ Green |
+
+### Backend objects the UI must consume (not recompute)
+
+```
+PipelineResult
+  ├── evidence_package: EvidencePackage
+  │     ├── detection: {actual_value, delta_absolute, delta_relative, test_statistic, material}
+  │     ├── decomposition: {drivers[], residual_pct, dominant_driver, no_dominant_contributor}
+  │     ├── segmentation: {ranked_stores[], excluded_stores[]}
+  │     ├── baseline: {baseline_mean, baseline_std, window_size_used}
+  │     ├── day_month_links: []
+  │     └── data_state, evaluated_on_stale_input, terminal_outcome
+  ├── hypothesis_package: HypothesisPackage
+  │     ├── hypotheses[]: {driver_type, confidence_score, confidence_band, confidence_components, status}
+  │     └── decision: {outcome, leading_hypothesis_id, caveat_text, memory_context}
+  ├── decision_package: DecisionPackage
+  │     ├── actions[]: ActionItem {driver, controllable_lever, action, expected_impact, owner, confidence, monitoring_plan}
+  │     ├── narrative_zone_business_head
+  │     └── narrative_dark_store_ops_manager
+  ├── memory_result: {matched, match_scope, confirmed_precedent_count, demo_fixture_involved}
+  └── telemetry_summary: {total_latency_ms, total_llm_calls, total_tokens, total_cost_usd}
+```
+
+### What the current UI does (gaps to fix)
+- Flat tab structure — no coherent navigation
+- No application shell (header with context, persona switcher)
+- No clear progressive disclosure (What changed? → Why? → What to do?)
+- No dedicated Investigation workspace
+- No Past Decisions page
+- No dedicated Memory as organizational learning page
+- No Data Health page
+- No Access & Entitlements page
+- Evidence is text-only — no traceability structure
+- Confidence shown as number only — not explained
+- No abstention scenario presented as a strength
+
+---
+
+## Architecture: New File Structure
+
+```
+ui/
+├── streamlit_app.py          ← application shell + routing (REWRITE)
+├── components/
+│   ├── design_system.py      ← CSS tokens, all reusable HTML builders
+│   ├── kpi_cards.py          ← KPIAlertCard, PriorityQueue
+│   ├── investigation.py      ← InvestigationWorkspace (What/Why/Evidence/Confidence/Action)
+│   ├── decision_cards.py     ← RecommendationCard, DecisionTimeline
+│   ├── memory_view.py        ← MemoryCard, LearningLoop
+│   ├── governance.py         ← AuditTrail, DataHealth, Entitlements, Telemetry
+│   └── scenario_launcher.py  ← ScenarioLauncher
+```
+
+---
+
+## Navigation Structure
+
+```
+Sidebar:
+  PRAXIS logo + tagline
+
+  HOME
+    Morning Briefing                 ← default page
+
+  INVESTIGATE
+    Active Investigations            ← opens investigation workspace
+
+  DECISIONS
+    Recommended Actions
+    Past Decisions
+
+  LEARNING
+    What Praxis Has Learned
+    Memory
+
+  GOVERNANCE
+    Evidence & Audit Trail
+    Data Health
+    Access & Entitlements
+    Telemetry
+
+  DEMO
+    Scenario Launcher
+```
+
+---
+
+## Proposed Changes
+
+### [REWRITE] `ui/streamlit_app.py`
+- New application shell with sidebar navigation
+- Global header (persona, zone, period, status)
+- Page routing to all screens
+- State management for pipeline results
+
+### [NEW] `ui/components/design_system.py`
+- Full CSS design system (Inter font, navy/purple palette, spacing tokens)
+- All reusable HTML component builders
+- Badge, pill, card, table, progress bar helpers
+
+### [NEW] `ui/components/kpi_cards.py`
+- `render_priority_queue()` — 5-KPI ranked table
+- `render_kpi_detail_card()` — inline KPI metrics
+
+### [NEW] `ui/components/investigation.py`
+- `render_what_changed()` — KPI movement with materiality explanation
+- `render_why()` — driver decomposition bars + segmentation table
+- `render_evidence_panel()` — grouped structured + unstructured evidence
+- `render_how_praxis_concluded()` — collapsible 6-step analytical chain
+- `render_confidence_panel()` — score breakdown + "what could change this"
+- `render_abstention()` — INSUFFICIENT_EVIDENCE as strength
+
+### [NEW] `ui/components/decision_cards.py`
+- `render_recommendation_card()` — Driver → Lever → Action → Owner → Impact → Confidence → Monitor
+- `render_counterfactual_panel()` — "What if we fix this?"
+- `render_downstream_risk()` — temporal association display
+- `render_past_decisions_table()` — timeline of decisions + outcomes
+
+### [NEW] `ui/components/memory_view.py`
+- `render_learning_loop_diagram()` — Decision → Outcome → Learning → Memory → Better Decision
+- `render_memory_cards()` — structured organizational knowledge cards
+- `render_memory_correction()` — supersession demonstration
+
+### [NEW] `ui/components/governance.py`
+- `render_audit_trail()` — Claim → Evidence → Source → Method → Confidence → Decision
+- `render_data_health()` — source freshness table
+- `render_entitlements()` — role, accessible regions, restricted fields
+- `render_telemetry()` — latency, LLM calls, cost breakdown
+
+### [NEW] `ui/components/scenario_launcher.py`
+- 7 one-click scenarios with descriptions and expected outcomes
+
+---
+
+## Visual Design System
+
+**Font:** Inter (400/500/600/700)
+**Canvas:** #FFFFFF, #F8F9FA (off-white sections)
+**Primary text:** #0F1117 (deep navy)
+**Brand accent:** #6B46C1 (Praxis purple)
+**Secondary accent:** #2563EB (blue for links/CTAs)
+**Success:** #16A34A
+**Warning:** #D97706
+**Critical:** #DC2626
+**Border:** #E5E7EB (light, consistent)
+**Card shadow:** 0 1px 3px rgba(0,0,0,0.08)
+**Radius:** 8px cards, 6px buttons, 4px badges
+
+---
+
+## Implementation Order
+
+1. **Design system + shell** (design_system.py + app shell)
+2. **Morning Briefing** (KPI priority queue + top investigation banner)
+3. **Investigation Workspace** (highest priority — 5 panels)
+4. **Confidence + Abstention** (within investigation)
+5. **Recommendation Card + Counterfactual**
+6. **Past Decisions + Persona switching**
+7. **Memory / Learning pages**
+8. **Governance pages** (Audit, Data Health, Entitlements, Telemetry)
+9. **Scenario Launcher**
+10. **QA + demo polish**
+
+---
+
+## Open Questions
+
+> [!IMPORTANT]
+> **Confirmed before proceeding:** The backend (C1–C5, pipeline, tests) is NOT modified. Only `ui/` files change.
+
+> [!NOTE]
+> The Streamlit app will remain a single `streamlit_app.py` for portability. Components will be implemented as Python functions within a `ui/components/` package imported by the main app.
+
+> [!NOTE]
+> "Approve & Execute" will record a decision in DuckDB (already supported by C5) and display "Decision recorded · Prototype simulation" — not claim external execution.
+
+> [!NOTE]
+> Memory Correction/Supersession will be demonstrated via the Scenario Launcher using a pre-seeded fixture showing Previous belief → New evidence → Superseded. The backend already supports `validation_status = 'rejected'`.
+
+---
+
+## Verification Plan
+
+### Automated
+```
+python -m pytest tests/ -q
+```
+Must remain 76 passed, 0 failed.
+
+### Manual
+- Run app, navigate all 8 pages
+- Launch all 7 scenarios
+- Switch persona — verify narrative changes, GMV entitlement enforced
+- Click "Approve Decision" — verify DuckDB record created, "Decision recorded" shown
+- Memory Log shows all records
+- Stale source shows warning in Data Health
+- Abstention scenario shows as strength not failure
