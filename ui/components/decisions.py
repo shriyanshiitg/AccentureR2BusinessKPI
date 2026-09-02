@@ -265,10 +265,33 @@ def render_past_decisions(decisions: List[Dict]):
             st.rerun()
 
 
-# ────────────────────────────────────────────────────────────────────────────
-# Render helper used by main app
-# ────────────────────────────────────────────────────────────────────────────
+def render_decisions(result, persona: str, decisions=None,
+                     on_approve=None, on_feedback=None):
+    """
+    Merged 'Actions & Decisions' page.
+    Tab 1: Active recommendation (from latest pipeline result).
+    Tab 2: Decision history + outcome feedback.
+    """
+    st.markdown('<div class="prx-page-title">Actions &amp; Decisions</div>',
+                unsafe_allow_html=True)
+    st.markdown(
+        '<div class="prx-page-sub">Recommended actions from the latest analysis · '
+        'Full history of every approved decision and its recorded outcome.</div>',
+        unsafe_allow_html=True
+    )
 
-def render_decisions(result, persona: str):
-    """Default decisions view (forwards to recommended actions)."""
-    render_recommended_actions(result=result, persona=persona)
+    tab_rec, tab_hist = st.tabs(["✓  Active Recommendation", "⊞  Decision History"])
+
+    with tab_rec:
+        if result is None or result.error:
+            from ui.components.design_system import empty_state
+            st.markdown(empty_state(
+                "No recommendation yet",
+                "Run a scenario using the 'Run Signature Demo' button in the sidebar.",
+                "→"
+            ), unsafe_allow_html=True)
+        else:
+            render_recommended_actions(result=result, persona=persona, on_approve=on_approve)
+
+    with tab_hist:
+        render_past_decisions(decisions=decisions or [])

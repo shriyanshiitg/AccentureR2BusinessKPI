@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Praxis · KPI Intelligence Engine</title>
+  <meta name="description" content="Praxis — a KPI intelligence-to-action engine that detects, explains, and recommends actions on material business KPI movements using a deterministic C1→C5 pipeline with LLM-generated narratives." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<nav id="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="#">Praxis<span class="dot">.</span></a>
+    <ul class="nav-links">
+      <li><a href="#pipeline">Pipeline</a></li>
+      <li><a href="#capabilities">Capabilities</a></li>
+      <li><a href="#scenarios">Scenarios</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="https://github.com/shriyanshiitg/AccentureR2BusinessKPI" target="_blank" class="btn-nav">GitHub ↗</a></li>
+    </ul>
+  </div>
+</nav>
+
+<section id="hero">
+  <canvas id="hero-canvas"></canvas>
+  <div class="hero-content">
+    <div class="hero-badge fade-up">Accenture Round 2 · KPI Intelligence Engine</div>
+    <h1 class="hero-title fade-up">From KPI alert<br/>to boardroom action<br/><span class="gradient-text">in one pipeline.</span></h1>
+    <p class="hero-sub fade-up">Praxis detects material KPI movements, decomposes them into explainable drivers, scores confidence with a transparent formula, and delivers persona-specific action packages — all grounded in deterministic logic, not LLM guesswork.</p>
+    <div class="hero-ctas fade-up">
+      <a href="#pipeline" class="btn-primary">See how it works</a>
+      <a href="https://github.com/shriyanshiitg/AccentureR2BusinessKPI" target="_blank" class="btn-ghost">View on GitHub ↗</a>
+    </div>
+    <div class="hero-stats fade-up">
+      <div class="stat"><span class="stat-num" data-target="76">0</span><span class="stat-label">Tests passing</span></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><span class="stat-num" data-target="5">0</span><span class="stat-label">Live KPI contracts</span></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><span class="stat-num" data-target="5">0</span><span class="stat-label">Pipeline stages</span></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><span class="stat-num" data-target="4">0</span><span class="stat-label">Data sources</span></div>
+    </div>
+  </div>
+  <div class="hero-scroll-hint">scroll ↓</div>
+</section>
+
+<section id="pipeline" class="section">
+  <div class="container">
+    <div class="section-tag reveal">Architecture</div>
+    <h2 class="section-title reveal">The C1 → C5 Pipeline</h2>
+    <p class="section-sub reveal">Five deterministic + reasoning stages — each with a clearly defined role, explicit inputs/outputs, and an auditable method tag.</p>
+    <div class="pipeline-flow reveal">
+      <div class="pipeline-step c1">
+        <div class="step-badge">C1</div>
+        <div class="step-name">Data Foundation</div>
+        <div class="step-desc">KPI YAML contracts, DQ validation, entitlement checks, lineage IDs, source freshness</div>
+        <div class="step-tag det">DETERMINISTIC</div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step c2">
+        <div class="step-badge">C2</div>
+        <div class="step-name">Analytical Investigation</div>
+        <div class="step-desc">Rolling baseline, z-score materiality gate, contribution decomposition, store segmentation</div>
+        <div class="step-tag det">DETERMINISTIC</div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step c5">
+        <div class="step-badge">C5</div>
+        <div class="step-name">Memory Governance</div>
+        <div class="step-desc">DuckDB precedent store, BM25+embedding retrieval, confidence modulation, contradiction detection</div>
+        <div class="step-tag mem">BM25 + VECTOR</div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step c3">
+        <div class="step-badge">C3</div>
+        <div class="step-name">Reasoning &amp; Scoring</div>
+        <div class="step-desc">Hypothesis generation, CV retrieval, confidence formula ms+ds+cvs−dqp+mem, abstention logic</div>
+        <div class="step-tag form">FORMULA + LLM</div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step c4">
+        <div class="step-badge">C4</div>
+        <div class="step-name">Decision &amp; Persona</div>
+        <div class="step-desc">Lever mapping from contract, decision rights, structured action package, persona narrative</div>
+        <div class="step-tag llm">LLM NARRATIVE</div>
+      </div>
+    </div>
+    <div class="pipeline-rule reveal">
+      <div class="rule-icon">⚖️</div>
+      <div class="rule-text"><strong>Core design rule:</strong> The LLM is the source of <em>narrative prose only</em>. Every number, percentage, z-score, confidence score, lever, and action owner is computed by deterministic code and traceable to its formula.</div>
+    </div>
+  </div>
+</section>
+
+<section id="screenshots" class="section section-dark">
+  <div class="container">
+    <div class="section-tag reveal">Live Demo</div>
+    <h2 class="section-title reveal">See Praxis in action</h2>
+    <p class="section-sub reveal">Every panel is backed by real computed values — not mocked data.</p>
+    <div class="screenshot-tabs reveal" id="screenshotTabs">
+      <button class="stab active" data-idx="0">Alert Queue</button>
+      <button class="stab" data-idx="1">Action Package · C4</button>
+      <button class="stab" data-idx="2">Method Audit Trail</button>
+    </div>
+    <div class="screenshot-frame reveal">
+      <div class="screenshot-slide active" data-idx="0">
+        <img src="assets/screenshot_alert_queue.png" alt="Multi-KPI Alert Queue" loading="lazy" />
+        <div class="screenshot-caption"><strong>Multi-KPI Alert Queue</strong> — C2 Op1+Op2 runs across all 5 KPI contracts on every load. Purely deterministic. Zero LLM calls. Zone GMV and Stockout Rate flagged as 🔴 MATERIAL with z-scores and business-floor validation.</div>
+      </div>
+      <div class="screenshot-slide" data-idx="1">
+        <img src="assets/screenshot_action_card.png" alt="Structured Action Package from C4" loading="lazy" />
+        <div class="screenshot-caption"><strong>Structured Action Package · C4</strong> — Driver → Lever → Action → recoverable ₹3.4L → counterfactual → owner → confidence band. The expected-impact ₹ figure is computed as <code>top_driver_pct × |gap|</code>, not LLM-generated.</div>
+      </div>
+      <div class="screenshot-slide" data-idx="2">
+        <img src="assets/screenshot_audit_trail.png" alt="Method Audit Trail table" loading="lazy" />
+        <div class="screenshot-caption"><strong>Method Audit Trail</strong> — Every pipeline step is labelled: DETERMINISTIC (blue), BM25+EMBEDDING (green), FORMULA (orange), or LLM (purple). Judges can trace every claim back to its source.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="capabilities" class="section">
+  <div class="container">
+    <div class="section-tag reveal">What it does</div>
+    <h2 class="section-title reveal">8 Evaluation Criteria — All Addressed</h2>
+    <p class="section-sub reveal">Built against the exact Round 2 rubric. Each capability maps to a numbered criterion.</p>
+    <div class="caps-grid">
+      <div class="cap-card reveal">
+        <div class="cap-num">01</div>
+        <div class="cap-title">Material Detection &amp; Prioritisation</div>
+        <div class="cap-body">C2 Op1 computes a same-weekday rolling baseline (14-day μ/σ). Op2 applies a dual gate: z-score threshold AND an absolute business floor. All five KPIs sweep on every load — ranked by severity.</div>
+        <div class="cap-tag det">C2 · DETERMINISTIC</div>
+      </div>
+      <div class="cap-card reveal">
+        <div class="cap-num">02</div>
+        <div class="cap-title">Heterogeneous Data Reconciliation</div>
+        <div class="cap-body">C1 loads four source systems (OMS, GPS, CV, INV), applies field-level DQ validation per YAML contract, tracks staleness per source, and propagates a confidence penalty when data is stale.</div>
+        <div class="cap-tag det">C1 · SCHEMA-VALIDATED</div>
+      </div>
+      <div class="cap-card reveal">
+        <div class="cap-num">03</div>
+        <div class="cap-title">Driver Identification &amp; Ranking</div>
+        <div class="cap-body">C2 Op3 decomposes the KPI gap into governed drivers (from the KPI contract). Op4 segments by store and ranks contribution weight. SKU-level interval analysis confirms the stockout driver.</div>
+        <div class="cap-tag det">C2 · DECOMPOSITION</div>
+      </div>
+      <div class="cap-card reveal">
+        <div class="cap-num">04</div>
+        <div class="cap-title">Persona-Specific Narratives</div>
+        <div class="cap-body">C4 generates two views: Zone Business Head (strategic) and Dark-Store Ops Manager (operational). Entitlement rules in C1 enforce what each persona can see — the Ops Manager never sees cross-zone GMV.</div>
+        <div class="cap-tag llm">C4 · LLM NARRATIVE</div>
+      </div>
+      <div class="cap-card reveal">
+        <div class="cap-num">05</div>
+        <div class="cap-title">Uncertainty &amp; Abstention</div>
+        <div class="cap-body">C3 computes <code>ms + ds + cvs − dqp + mem</code>. Scores below LOW threshold trigger a hard ABSTAIN. The system can also QUALIFY when evidence is partial — it never fabricates certainty.</div>
+        <div class="cap-tag form">C3 · FORMULA</div>
+      </div>
+      <div class="cap-card reveal">
+        <div class="cap-num">06</div>
+        <div class="cap-title">Grounded Action Recommendations</div>
+        <div class="cap-body">C4 reads the lever map from the KPI contract (not hardcoded). Decision rights (L1–L7) enforced by persona × lever × cost ceiling. Action package includes owner, monitoring plan, and escalation path.</div>
+        <div class="cap-tag det">C4 · CONTRACT-DRIVEN</div>
+      </div>
+      <div class="cap-card reveal">
+        <div class="cap-num">07</div>
+        <div class="cap-title">Learning from Feedback</div>
+        <div class="cap-body">C5 stores analyst-approved findings in a DuckDB precedent store. BM25+cosine hybrid search retrieves matching precedents. Confirmed precedents boost confidence; contradictions cap it.</div>
+        <div class="cap-tag mem">C5 · MEMORY</div>
+      </div>
+      <div class="cap-card reveal">
+        <div class="cap-num">08</div>
+        <div class="cap-title">Security, Cost &amp; Latency</div>
+        <div class="cap-body">LLM called only for narrative prose. SHA-256 in-process cache deduplicates runs. Groq Llama-3.3-70b delivers sub-2s latency. No PII leaves the local environment.</div>
+        <div class="cap-tag det">CACHE · GROQ</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="formula" class="section section-dark">
+  <div class="container container-narrow">
+    <div class="section-tag reveal">Transparency</div>
+    <h2 class="section-title reveal">Confidence is a formula, not vibes</h2>
+    <p class="section-sub reveal">Every confidence band is produced by an explicit, auditable equation — with live component values shown in the UI.</p>
+    <div class="formula-card reveal">
+      <div class="formula-display">
+        <span class="f-var">ms</span><span class="f-op">+</span>
+        <span class="f-var">ds</span><span class="f-op">+</span>
+        <span class="f-var">cvs</span><span class="f-op">−</span>
+        <span class="f-var">dqp</span><span class="f-op">+</span>
+        <span class="f-var">mem</span><span class="f-op">=</span>
+        <span class="f-result">score → band</span>
+      </div>
+      <div class="formula-legend">
+        <div class="fl-item"><code>ms</code> Movement significance (z-score magnitude, max 40)</div>
+        <div class="fl-item"><code>ds</code> Driver support (decomposition + CV convergence, max 30)</div>
+        <div class="fl-item"><code>cvs</code> Customer voice signal (sentiment alignment, max 20)</div>
+        <div class="fl-item"><code>dqp</code> Data quality penalty (stale/missing sources, subtracts)</div>
+        <div class="fl-item"><code>mem</code> Memory boost/cap (precedent match ±, max ±10)</div>
+      </div>
+      <div class="formula-bands">
+        <div class="band high">HIGH ≥ 70 → Recommend</div>
+        <div class="band med">MEDIUM 40–69 → Qualify</div>
+        <div class="band low">LOW &lt; 40 → ABSTAIN</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="scenarios" class="section">
+  <div class="container">
+    <div class="section-tag reveal">Demo Scenarios</div>
+    <h2 class="section-title reveal">Four paths through the engine</h2>
+    <p class="section-sub reveal">Each scenario exercises a different decision pathway — including hard edge cases the system handles correctly.</p>
+    <div class="scenarios-grid">
+      <div class="scenario-card reveal sc-primary">
+        <div class="sc-header"><div class="sc-icon">🎯</div><div class="sc-meta"><div class="sc-name">Signature Demo</div><div class="sc-tag">D1 vs D3 · Memory active</div></div></div>
+        <div class="sc-body">Zone GMV drops 25% (z=8.3). DS041 stockout identified as primary driver (55% of gap). Decision 1 (no memory) vs Decision 3 (with memory boost from prior approved precedent) — confidence jumps from MEDIUM to HIGH.</div>
+        <div class="sc-outcome outcome-action">→ RECOMMEND: Cross-store transfer, recover ~₹3.4L</div>
+      </div>
+      <div class="scenario-card reveal sc-warn">
+        <div class="sc-header"><div class="sc-icon">⏸️</div><div class="sc-meta"><div class="sc-name">Abstention</div><div class="sc-tag">Insufficient History</div></div></div>
+        <div class="sc-body">KPI has fewer than 3 history points. The rolling baseline cannot be reliably computed. C3 hard-stops: no hypothesis, no narrative, no action. Explicit reasoning shown.</div>
+        <div class="sc-outcome outcome-abstain">→ ABSTAIN: Insufficient history — no action recommended</div>
+      </div>
+      <div class="scenario-card reveal sc-warn">
+        <div class="sc-header"><div class="sc-icon">⚡</div><div class="sc-meta"><div class="sc-name">No Dominant Contributor</div><div class="sc-tag">Distributed gap</div></div></div>
+        <div class="sc-body">The KPI gap is spread across multiple stores with no single contributor >40%. C3 caps confidence at MEDIUM — honest about ambiguity. A QUALIFY recommendation is issued with explicit caveats.</div>
+        <div class="sc-outcome outcome-qualify">→ QUALIFY: Monitor all stores, no single lever sufficient</div>
+      </div>
+      <div class="scenario-card reveal sc-challenge">
+        <div class="sc-header"><div class="sc-icon">🔀</div><div class="sc-meta"><div class="sc-name">Challenge — CV Contradicts</div><div class="sc-tag">Memory contradiction</div></div></div>
+        <div class="sc-body">Customer voice contradicts the operational hypothesis. C5 memory finds a rejected precedent. The contradiction penalty caps confidence below QUALIFY — and the system explains why it disagrees with itself.</div>
+        <div class="sc-outcome outcome-qualify">→ QUALIFY with caveat: Prior contradictions detected</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="architecture" class="section section-dark">
+  <div class="container">
+    <div class="section-tag reveal">Technical Architecture</div>
+    <h2 class="section-title reveal">What runs where</h2>
+    <p class="section-sub reveal">A clean separation between deterministic analytics and LLM generation — every boundary is explicit in code and visible in the UI audit trail.</p>
+    <div class="arch-split reveal">
+      <div class="arch-col arch-det">
+        <div class="arch-col-header">
+          <div class="arch-badge det-badge">DETERMINISTIC</div>
+          <div class="arch-col-title">Computed by code</div>
+        </div>
+        <ul class="arch-list">
+          <li>Rolling 14-day same-weekday baseline (μ, σ)</li>
+          <li>z-score materiality gate + business floor</li>
+          <li>Contribution decomposition (% per driver)</li>
+          <li>Store segmentation + ranking by gap weight</li>
+          <li>KPI contract validation (YAML schema)</li>
+          <li>Data quality penalty calculation (−dqp)</li>
+          <li>Confidence score formula (ms+ds+cvs−dqp+mem)</li>
+          <li>Decision rights enforcement (L1–L7 levers)</li>
+          <li>Recoverable ₹ impact (top_driver_pct × |gap|)</li>
+          <li>Counterfactual computation</li>
+          <li>SHA-256 cache deduplication</li>
+          <li>DuckDB memory retrieval (BM25+cosine)</li>
+        </ul>
+      </div>
+      <div class="arch-col arch-llm">
+        <div class="arch-col-header">
+          <div class="arch-badge llm-badge">LLM · llama-3.3-70b</div>
+          <div class="arch-col-title">Generated by Groq</div>
+        </div>
+        <ul class="arch-list">
+          <li>Hypothesis claim text (1–2 sentences)</li>
+          <li>Persona-specific narrative prose</li>
+          <li>Action wording (driver/lever/action field text)</li>
+          <li>Caveat and monitoring plan wording</li>
+        </ul>
+        <div class="arch-note">⚠ The LLM is <strong>never</strong> the source of any number, percentage, confidence score, lever selection, or owner assignment. These are computed before the LLM call and passed as structured context.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="stack" class="section">
+  <div class="container">
+    <div class="section-tag reveal">Tech Stack</div>
+    <h2 class="section-title reveal">Built on the right tools</h2>
+    <div class="stack-grid reveal">
+      <div class="stack-item"><div class="stack-icon">🐍</div><div class="stack-name">Python 3.14</div><div class="stack-role">Core pipeline</div></div>
+      <div class="stack-item"><div class="stack-icon">🦆</div><div class="stack-name">DuckDB</div><div class="stack-role">Memory + analytics</div></div>
+      <div class="stack-item"><div class="stack-icon">🤖</div><div class="stack-name">Groq Llama-3.3-70b</div><div class="stack-role">Narrative only</div></div>
+      <div class="stack-item"><div class="stack-icon">🎈</div><div class="stack-name">Streamlit</div><div class="stack-role">Interactive UI</div></div>
+      <div class="stack-item"><div class="stack-icon">🔍</div><div class="stack-name">BM25 + Cosine</div><div class="stack-role">Hybrid retrieval</div></div>
+      <div class="stack-item"><div class="stack-icon">✅</div><div class="stack-name">pytest</div><div class="stack-role">76 automated tests</div></div>
+    </div>
+  </div>
+</section>
+
+<footer id="footer">
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="footer-logo">Praxis<span class="dot">.</span></div>
+        <div class="footer-tagline">KPI Intelligence-to-Action Engine</div>
+        <div class="footer-sub">Built for Accenture Round 2 · Quick Commerce vertical</div>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/shriyanshiitg/AccentureR2BusinessKPI" target="_blank">GitHub Repository ↗</a>
+        <a href="#pipeline">Pipeline</a>
+        <a href="#capabilities">Capabilities</a>
+        <a href="#scenarios">Scenarios</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>76 tests passing · 5 KPI contracts · C1→C2→C5→C3→C4</div>
+      <div>LLM = narrative only · All numbers computed deterministically</div>
+    </div>
+  </div>
+</footer>
+<script src="script.js"></script>
+</body>
+</html>

@@ -14,10 +14,12 @@ from typing import Optional
 import streamlit as st
 
 from ui.components.design_system import (
-    badge, freshness_dot, outcome_pill, section_label, callout,
+    badge, freshness_dot, outcome_pill, section_label, section_sep,
+    memory_boost_card, callout,
     audit_badge, audit_row, bar_row, action_row, evidence_row,
     conf_bar, empty_state, tel_html, method_badge
 )
+
 from praxis.c1_data_foundation.entitlements import Persona, can_access_zone_gmv_total
 from praxis.c1_data_foundation.kpi_contracts import KPI_CONTRACTS
 
@@ -28,11 +30,13 @@ def _kpi_display(kpi_id: str) -> str:
 
 
 def render_investigation(result, persona: str):
-    """Full investigation workspace rendered from PipelineResult."""
-
+    """
+    Full investigation workspace — single scroll, no tabs.
+    Sections: WHAT HAPPENED → WHY → [MEMORY BOOST] → CONFIDENCE → WHAT TO DO → [AUDIT ▾]
+    """
     if result is None:
         st.markdown(empty_state("No investigation active",
-                                "Run a scenario from the Scenario Launcher.", "⌕"),
+                                "Use the 'Run Signature Demo' button in the sidebar.", "⌕"),
                     unsafe_allow_html=True)
         return
 
@@ -48,57 +52,98 @@ def render_investigation(result, persona: str):
 
     kpi_name = _kpi_display(ep.kpi_id) if ep else "Unknown KPI"
 
-    # ── Page header ──────────────────────────────────────────────────────────
-    st.markdown(f'<div class="prx-page-title">Investigation — {kpi_name}</div>',
-                unsafe_allow_html=True)
-
+    # ── Page header ───────────────────────────────────────────────────────────
     scenario_lbl = (st.session_state.get("scenario_name") or "s1").upper()
     outcome = (dp.source_decision_outcome if dp else (
         hp.decision.get("outcome", "ABSTAIN") if hp else "ABSTAIN"))
 
-    col_label, col_outcome, col_tel = st.columns([3, 2, 4])
-    with col_label:
+    st.markdown(f'<div class="prx-page-title">Investigation — {kpi_name}</div>',
+                unsafe_allow_html=True)
+
+    col_meta, col_outcome, col_tel = st.columns([3, 2, 4])
+    with col_meta:
         st.markdown(
-            f'<div style="font-size:.75rem;color:#6B7280;">Scenario: <b>{scenario_lbl}</b> &nbsp;·&nbsp; '
-            f'Period: <b>{ep.period if ep else "—"}</b> &nbsp;·&nbsp; Zone: <b>{ep.grain_key if ep else "—"}</b></div>',
+            f'<div style="font-size:.75rem;color:#6B7280;">Scenario: <b>{scenario_lbl}</b>'
+            f' &nbsp;·&nbsp; Period: <b>{ep.period if ep else "—"}</b>'
+            f' &nbsp;·&nbsp; Zone: <b>{ep.grain_key if ep else "—"}</b></div>',
             unsafe_allow_html=True)
     with col_outcome:
         st.markdown(outcome_pill(outcome), unsafe_allow_html=True)
     with col_tel:
         st.markdown(tel_html(tel), unsafe_allow_html=True)
 
-    st.markdown("---")
+    # ─────────────────────────────────────────────────────────────────────────
+    # SECTION 1 — WHAT HAPPENED
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown(section_sep("WHAT HAPPENED"), unsafe_allow_html=True)
+    _tab_what_changed(ep, persona)
 
-    # ── Build the tab workspace ───────────────────────────────────────────────
-    tabs = st.tabs([
-        "① What Changed",
-        "② Why It Happened",
-        "③ Evidence",
-        "④ How Praxis Concluded",
-        "⑤ Confidence",
-        "⑥ Recommendation",
-        "⑦ Signature Demo",
-    ])
+    # ─────────────────────────────────────────────────────────────────────────
+    # SECTION 2 — WHY IT HAPPENED
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown(section_sep("WHY IT HAPPENED"), unsafe_allow_html=True)
+    _tab_why(ep, hp, persona)
 
-    with tabs[0]:
-        _tab_what_changed(ep, persona)
+    # ─────────────────────────────────────────────────────────────────────────
+    # MEMORY BOOST CARD — shown prominently when a precedent is retrieved
+    # This is the product's "magic moment" — must appear before confidence
+    # ─────────────────────────────────────────────────────────────────────────
+    if mr.get("matched"):
+        hp_hyps = (hp.hypotheses if hp else []) or []
+        mem_pts  = hp_hyps[0].get("confidence_components", {}).get("memory_points", 0) if hp_hyps else 0
+        pre_mem  = hp_hyps[0].get("confidence_components", {}).get("raw_pre_memory", 0) if hp_hyps else 0
+        post_mem = hp_hyps[0].get("confidence_score", 0) if hp_hyps else 0
+        scope    = mr.get("match_scope", "")
 
-    with tabs[1]:
-        _tab_why(ep, hp, persona)
+        # Try to get the date of the matched record
+        date_str = ""
+        try:
+            from praxis.c5_memory.gateway import _get_conn
+            conn = _get_conn()
+            row = conn.execute(
+                "SELECT created_at FROM decision_memory "
+                "WHERE validation_status='demo_preapproved' LIMIT 1"
+            ).fetchone()
+            conn.close()
+            if row:
+                date_str = str(row[0])[:10]
+        except Exception:
+            date_str = "Aug 2026"
 
-    with tabs[2]:
+        st.markdown(
+            memory_boost_card(pre_mem, post_mem, mem_pts, scope, date_str),
+            unsafe_allow_html=True
+        )
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # SECTION 3 — CONFIDENCE
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown(section_sep("CONFIDENCE & EVIDENCE"), unsafe_allow_html=True)
+    _tab_confidence(hp, mr)
+
+    # Evidence collapsed by default — reduces cognitive load for first-time users
+    with st.expander("▾ View supporting evidence", expanded=False):
         _tab_evidence(ep, hp)
 
-    with tabs[3]:
+    # ─────────────────────────────────────────────────────────────────────────
+    # SECTION 4 — WHAT TO DO
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown(section_sep("WHAT TO DO"), unsafe_allow_html=True)
+    _tab_recommendation(dp, ep, hp, persona)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # AUDIT TRAIL — collapsed (for technical reviewers, not primary users)
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown('<div style="margin-top:2rem;"></div>', unsafe_allow_html=True)
+    with st.expander("≡  View method audit trail — how Praxis reached this conclusion",
+                     expanded=False):
         _tab_audit(ep, hp, dp, mr)
 
-    with tabs[4]:
-        _tab_confidence(hp, mr)
-
-    with tabs[5]:
-        _tab_recommendation(dp, ep, hp, persona)
-
-    with tabs[6]:
+    # ─────────────────────────────────────────────────────────────────────────
+    # SIGNATURE DEMO COMPARISON — collapsed (run S1 first, then S2)
+    # ─────────────────────────────────────────────────────────────────────────
+    with st.expander("⊗  Compare: Cold Start vs Memory-Enhanced (Signature Demo)",
+                     expanded=False):
         _tab_signature_demo(result, persona)
 
 

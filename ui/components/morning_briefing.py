@@ -3,22 +3,21 @@ Morning Briefing page — the HOME screen.
 Priority queue of KPI movements with materiality ranks.
 Consumes run_all_kpis() output from pipeline.py (deterministic).
 
-Language policy: NO technical jargon on this screen (no z-score, STL, C2 Operator etc).
-All language must be business-readable.
+Language policy: NO technical jargon on this screen.
+UX redesign: inline [Investigate →] button per material KPI row.
+The old bottom investigation banner has been removed (redundant).
 """
 
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 import streamlit as st
 
 from ui.components.design_system import (
-    badge, freshness_dot, outcome_pill, section_label, callout, empty_state
+    badge, freshness_dot, section_label, empty_state
 )
 
-
-# ── Materiality status → badge mapping ───────────────────────────
 _STATUS_BADGE = {
     "MATERIAL":     ("critical", "Requires Attention"),
     "NON_MATERIAL": ("muted",    "On Track"),
@@ -26,7 +25,6 @@ _STATUS_BADGE = {
     "STALE":        ("warning",  "Stale Data"),
     "MISSING":      ("warning",  "Data Unavailable"),
 }
-
 _STATUS_ICON = {
     "MATERIAL":     "🔴",
     "NON_MATERIAL": "🟢",
@@ -34,12 +32,7 @@ _STATUS_ICON = {
     "STALE":        "🟡",
     "MISSING":      "⚪",
 }
-
-_DELTA_SIGN = {
-    True:  ("neg", "↓"),
-    False: ("pos", "↑"),
-    None:  ("zero", "—"),
-}
+_DELTA_SIGN = {True: ("neg", "↓"), False: ("pos", "↑"), None: ("zero", "—")}
 
 
 def render_morning_briefing(
@@ -50,25 +43,28 @@ def render_morning_briefing(
 ):
     """Full Morning Briefing page."""
 
-
     # ── Page header ──────────────────────────────────────────────────────────
-    now_str = "Mon, 1 Sep 2026 · 09:15 IST"
-    st.markdown(f'<div class="prx-page-title">Good morning.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="prx-page-title">Good morning.</div>', unsafe_allow_html=True)
     st.markdown(
-        f'<div class="prx-page-sub">Here\'s what needs your attention today — {now_str}.</div>',
+        '<div class="prx-page-sub">Here\'s what needs your attention today '
+        '— Mon, 1 Sep 2026 · 09:15 IST.</div>',
         unsafe_allow_html=True,
     )
 
-    # ── Decision brief summary bar ─────────────────────────────────────────
+    # ── Summary scan bar ──────────────────────────────────────────────────────
     n_total    = len(alert_queue)
     n_material = sum(1 for k in alert_queue if k.get("status") == "MATERIAL")
     n_action   = sum(1 for k in alert_queue
                      if k.get("status") == "MATERIAL" and k.get("severity", 0) >= 4)
-    if n_material > 0:
-        brief_text = (f"{n_material} business movement{'s' if n_material != 1 else ''} require "
-                      f"attention — {n_total - n_material} KPI{'s are' if (n_total - n_material) != 1 else ' is'} on track.")
-    else:
-        brief_text = f"All {n_total} KPIs are within normal range. No action required."
+
+    brief_text = (
+        f"{n_material} business movement{'s' if n_material != 1 else ''} require attention "
+        f"— {n_total - n_material} KPI{'s are' if (n_total - n_material) != 1 else ' is'} on track."
+        if n_material > 0
+        else f"All {n_total} KPIs are within normal range. No action required."
+    )
+    mat_color = "var(--red-600)"   if n_material > 0 else "var(--green-600)"
+    act_color = "var(--amber-600)" if n_action   > 0 else "var(--green-600)"
 
     st.markdown(f"""
 <div class="prx-scan-bar">
@@ -76,163 +72,129 @@ def render_morning_briefing(
     <div class="prx-scan-label">Today's Decision Brief</div>
     <div class="prx-scan-meta">{brief_text}</div>
   </div>
-  <div style="display:flex;gap:1.5rem;flex-shrink:0;">
-    <div style="text-align:center;">
-      <div style="font-size:1.5rem;font-weight:700;color:#5B21B6;">{n_total}</div>
-      <div style="font-size:.625rem;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:.05em;">KPIs monitored</div>
+  <div class="prx-scan-stat-wrap">
+    <div class="prx-scan-stat">
+      <div class="prx-scan-stat-num" style="color:var(--purple-800)">{n_total}</div>
+      <div class="prx-scan-stat-label" style="color:var(--purple-700)">KPIs monitored</div>
     </div>
-    <div style="text-align:center;">
-      <div style="font-size:1.5rem;font-weight:700;color:#DC2626;">{n_material}</div>
-      <div style="font-size:.625rem;font-weight:700;color:#B91C1C;text-transform:uppercase;letter-spacing:.05em;">Material movements</div>
+    <div class="prx-scan-stat">
+      <div class="prx-scan-stat-num" style="color:{mat_color}">{n_material}</div>
+      <div class="prx-scan-stat-label" style="color:{mat_color}">Material movements</div>
     </div>
-    <div style="text-align:center;">
-      <div style="font-size:1.5rem;font-weight:700;color:#D97706;">{n_action}</div>
-      <div style="font-size:.625rem;font-weight:700;color:#B45309;text-transform:uppercase;letter-spacing:.05em;">Require action</div>
+    <div class="prx-scan-stat">
+      <div class="prx-scan-stat-num" style="color:{act_color}">{n_action}</div>
+      <div class="prx-scan-stat-label" style="color:{act_color}">Require action</div>
     </div>
   </div>
 </div>
 """, unsafe_allow_html=True)
 
-    # ── Priority queue ──────────────────────────────────────────────────
-    st.markdown(section_label("KPI PRIORITY QUEUE — Zone Z003 · Week 33"), unsafe_allow_html=True)
+    # ── KPI priority queue ────────────────────────────────────────────────────
+    st.markdown(section_label("KPI PRIORITY QUEUE — Zone Z003 · Week 33"),
+                unsafe_allow_html=True)
 
-    # Table header — no statistical signal column
-    st.markdown("""
-<div class="prx-queue-wrap">
-  <div class="prx-queue-header">
-    <span></span>
-    <span></span>
-    <span>KPI</span>
-    <span>Actual vs Expected</span>
-    <span>Movement</span>
-    <span>Data Freshness</span>
-    <span>Priority</span>
-    <span>Next Step</span>
-  </div>
-""", unsafe_allow_html=True)
+    if not alert_queue:
+        st.markdown(empty_state("No KPI data", "Run the morning pipeline.", "◉"),
+                    unsafe_allow_html=True)
+        return
 
-    # Queue rows — no z-score column, no method meta
-    rows_html = ""
+    # Wrap the whole queue in a card container
+    st.markdown('<div class="prx-card" style="padding:0;overflow:hidden;">', unsafe_allow_html=True)
+
     for i, kpi in enumerate(alert_queue, 1):
-        status = kpi.get("status", "NON_MATERIAL")
+        status      = kpi.get("status", "NON_MATERIAL")
         bdg_cls, bdg_txt = _STATUS_BADGE.get(status, ("muted", status))
-        icon = _STATUS_ICON.get(status, "⚪")
+        icon        = _STATUS_ICON.get(status, "⚪")
+        is_material = (status == "MATERIAL")
 
         delta_pct = kpi.get("delta_pct")
         if delta_pct is not None:
             is_neg = delta_pct < 0
-            cls, arrow = _DELTA_SIGN[is_neg]
-            delta_html = f'<div class="prx-queue-delta {cls}">{arrow} {abs(delta_pct):.1f}%</div>'
+            color  = "#DC2626" if is_neg else "#059669"
+            arrow  = "↓" if is_neg else "↑"
+            delta_str = f'<span style="font-size:.875rem;font-weight:700;color:{color};">{arrow} {abs(delta_pct):.1f}%</span>'
         else:
-            delta_html = '<div class="prx-queue-delta zero">—</div>'
+            delta_str = '<span style="color:#9CA3AF;">—</span>'
 
-        fresh = kpi.get("freshness", "Fresh").lower()
-        fresh_html = freshness_dot(fresh, kpi.get("freshness_ago", ""))
-
-        outcome_label = kpi.get("outcome_label", "Monitor")
-        outcome_style = (
-            "color:#DC2626;font-weight:700;" if status == "MATERIAL" else
-            "color:#6B7280;"
+        fresh_html = freshness_dot(
+            kpi.get("freshness", "Fresh").lower(),
+            kpi.get("freshness_ago", "")
         )
 
-        rows_html += f"""
-<div class="prx-queue-row">
-  <div class="prx-queue-priority">{i}</div>
-  <div class="prx-queue-icon">{icon}</div>
-  <div>
-    <div class="prx-queue-name">{kpi['kpi_name']}</div>
-    <div class="prx-queue-meta">{kpi.get('source','—')}</div>
+        left_border = "border-left:3px solid #DC2626;" if is_material else \
+                      "border-left:3px solid #059669;" if status == "NON_MATERIAL" else \
+                      "border-left:3px solid #E5E7EB;"
+
+        row_html = f"""
+<div style="display:flex;align-items:center;gap:1rem;
+     padding:.9375rem 1.375rem 0 1.375rem;
+     border-bottom:1px solid var(--border-soft);{left_border}">
+  <div style="font-size:.625rem;font-weight:700;color:#9CA3AF;
+       width:1.25rem;text-align:center;flex-shrink:0;">{i}</div>
+  <div style="font-size:1rem;flex-shrink:0;">{icon}</div>
+  <div style="flex:1;min-width:0;">
+    <div style="font-size:.9rem;font-weight:600;color:#111827;
+         letter-spacing:-.01em;">{kpi['kpi_name']}</div>
+    <div style="font-size:.625rem;color:#9CA3AF;margin-top:.125rem;">
+      {kpi.get('source','—')}</div>
   </div>
-  <div class="prx-queue-values">
-    <div class="prx-queue-actual">{kpi.get('actual_display','—')}</div>
-    <div class="prx-queue-vs">vs expected</div>
+  <div style="text-align:right;flex-shrink:0;width:5.5rem;">
+    <div style="font-size:1rem;font-weight:700;color:#111827;
+         letter-spacing:-.02em;font-family:'Plus Jakarta Sans','Inter',sans-serif;">
+      {kpi.get('actual_display','—')}</div>
+    <div style="font-size:.5625rem;color:#9CA3AF;">vs expected</div>
   </div>
-  {delta_html}
-  <div>{fresh_html}</div>
-  <div>{badge(bdg_txt, bdg_cls)}</div>
-  <div style="font-size:.75rem;{outcome_style}">{outcome_label}</div>
+  <div style="width:4.5rem;text-align:right;flex-shrink:0;">{delta_str}</div>
+  <div style="width:6rem;flex-shrink:0;">{fresh_html}</div>
+  <div style="width:8rem;flex-shrink:0;">{badge(bdg_txt, bdg_cls)}</div>
 </div>"""
+        st.markdown(row_html, unsafe_allow_html=True)
 
-    st.markdown(rows_html + "</div>", unsafe_allow_html=True)
+        # ── Inline Investigate button — only for material KPIs ────────────────
+        if is_material:
+            _, btn_col, _ = st.columns([0.05, 0.22, 0.73])
+            with btn_col:
+                if st.button(
+                    "⌕  Investigate →",
+                    key=f"inv_{i}_{kpi.get('kpi_id', i)}",
+                    type="primary",
+                    use_container_width=True,
+                ):
+                    # Auto-run S1 if no active result, then navigate
+                    if st.session_state.get("pipeline_result") is None:
+                        from praxis.orchestration.pipeline import run_pipeline
+                        from praxis.synthetic.generator import get_scenario
+                        with st.spinner("Running analysis…"):
+                            r = run_pipeline(
+                                scenario=get_scenario("s1"),
+                                persona=st.session_state.persona,
+                            )
+                            st.session_state.pipeline_result = r
+                            st.session_state.scenario_name   = "s1"
+                    st.session_state.page = "Active Investigation"
+                    st.rerun()
+        else:
+            # Spacing for non-material rows
+            st.markdown('<div style="padding-bottom:.25rem;"></div>', unsafe_allow_html=True)
 
-    # ── Priority investigation banner ─────────────────────────────────────
-    top = alert_queue[0] if alert_queue else None
-    if top and top.get("status") == "MATERIAL":
-        _render_top_investigation_banner(top, on_investigate)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # ── Learning insight ────────────────────────────────────────────────
+    # ── Organisational memory insight strip ───────────────────────────────────
     _render_learning_insight()
 
 
-def _render_top_investigation_banner(kpi: Dict, on_investigate: Optional[Callable]):
-    """Show the most urgent KPI with a one-click investigate CTA."""
-    st.markdown(section_label("PRIORITY INVESTIGATION"), unsafe_allow_html=True)
-
-    delta_pct = kpi.get("delta_pct", 0) or 0
-    delta_dir = "below" if delta_pct < 0 else "above"
-
-    st.markdown(f"""
-<div class="prx-inv-panel">
-  <div class="prx-inv-panel-head">
-    <div class="prx-inv-panel-title">
-      🔴&nbsp; {kpi['kpi_name']} · Material Movement
-    </div>
-    <span class="prx-badge critical">Requires Action</span>
-  </div>
-  <div class="prx-inv-panel-body">
-    <div style="margin-bottom:1rem;">
-      <div style="font-size:.75rem;color:#6B7280;margin-bottom:.25rem;">WHAT CHANGED</div>
-      <div style="font-size:1.125rem;font-weight:600;color:#0F1117;">
-        {kpi['kpi_name']} is <span style="color:#DC2626;">{abs(delta_pct):.0f}% {delta_dir} expected performance</span>
-        — movement is outside normal range for this KPI.
-      </div>
-      <div style="font-size:.8125rem;color:#6B7280;margin-top:.375rem;">
-        Current: <b>{kpi.get('actual_display','—')}</b> &nbsp;·&nbsp;
-        Freshness: {freshness_dot(kpi.get('freshness','Fresh').lower(), kpi.get('freshness_ago',''))}
-        &nbsp;·&nbsp; Source: {kpi.get('source','—')}
-      </div>
-    </div>
-    <div style="display:flex;gap:2rem;padding:0.875rem;background:#F9FAFB;border-radius:6px;margin-bottom:1rem;font-size:.8125rem;color:#374151;">
-      <div><div style="font-size:.5625rem;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.1875rem;">Analysis</div><div>Quantitative pattern analysis — fully automated</div></div>
-      <div><div style="font-size:.5625rem;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.1875rem;">Driver Analysis</div><div>Root cause identified — investigate for details</div></div>
-      <div><div style="font-size:.5625rem;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.1875rem;">Recommended Action</div><div>Cross-store inventory reallocation</div></div>
-    </div>
-    <div style="font-size:.75rem;color:#6B7280;font-style:italic;">
-      Click <b>Investigate</b> to open the full analysis with evidence, confidence assessment, and recommended action.
-    </div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
-    col1, col2 = st.columns([2, 5])
-    with col1:
-        if st.button("⌭  Investigate →", type="primary", key="mb_investigate", use_container_width=True):
-            if on_investigate:
-                on_investigate()
-    with col2:
-        if st.button("▶  Run Signature Demo (S1)", key="mb_run_demo", use_container_width=True):
-            from praxis.orchestration.pipeline import run_pipeline
-            from praxis.synthetic.generator import get_scenario
-            scenario = get_scenario("s1")
-            with st.spinner("Running analysis…"):
-                result = run_pipeline(scenario=scenario, persona=st.session_state.persona)
-                st.session_state.pipeline_result = result
-                st.session_state.scenario_name = "s1"
-            st.session_state.page = "Active Investigations"
-            st.rerun()
-
-
 def _render_learning_insight():
-    """Compact learning/memory insight — introduces the closed-loop differentiator."""
+    """Compact strip showing memory status — introduces the learning loop."""
     memory_count = 0
     try:
         from praxis.c5_memory.gateway import _get_conn
-        conn = _get_conn()
+        conn   = _get_conn()
         result = conn.execute(
             "SELECT COUNT(*) FROM outcome_memory WHERE outcome_matches_hypothesis = TRUE"
         ).fetchone()
         if result:
             memory_count = result[0]
+        conn.close()
     except Exception:
         pass
 
@@ -240,21 +202,29 @@ def _render_learning_insight():
     total = memory_count + session_count
 
     if total > 0:
-        insight_text = (f"Praxis has <b>{total}</b> validated decision record"
-                        f"{'s' if total != 1 else ''} from similar situations — "
-                        "these will inform today's recommendations.")
+        mem_pts       = min(12 + 6 * (total - 1), 25)
+        insight_text  = (
+            f"Praxis has <b>{total}</b> validated decision record"
+            f"{'s' if total != 1 else ''} in organisational memory. "
+            f"The next matching investigation will receive a <b>+{mem_pts} pt confidence boost</b> — "
+            f"automatically, without any user action."
+        )
     else:
-        insight_text = ("No validated decisions yet. Approve and confirm the outcome of your "
-                        "first investigation to begin building organisational memory.")
+        insight_text = (
+            "No validated decisions yet. Run a Signature Demo, approve the recommendation, "
+            "then confirm the outcome to begin building organisational memory."
+        )
 
     st.markdown(f"""
-<div style="background:#F5F3FF;border:1px solid #E9D5FF;border-radius:8px;
-     padding:.875rem 1.25rem;margin-top:1.25rem;
+<div style="background:#F5F3FF;border:1px solid #E9D5FF;border-radius:10px;
+     padding:1rem 1.375rem;margin-top:1.5rem;
      display:flex;align-items:center;gap:.875rem;">
-  <span style="font-size:1.375rem;flex-shrink:0;">⊗</span>
+  <span style="font-size:1.5rem;flex-shrink:0;
+       filter:drop-shadow(0 0 6px rgba(124,58,237,.35));">⊗</span>
   <div>
-    <div style="font-size:.8125rem;font-weight:600;color:#5B21B6;margin-bottom:.1875rem;">Organisational Experience</div>
-    <div style="font-size:.75rem;color:#7C3AED;line-height:1.5;">{insight_text}</div>
+    <div style="font-size:.8125rem;font-weight:700;color:#5B21B6;
+         margin-bottom:.25rem;">Praxis Learning Loop</div>
+    <div style="font-size:.75rem;color:#7C3AED;line-height:1.6;">{insight_text}</div>
   </div>
 </div>
 """, unsafe_allow_html=True)

@@ -427,7 +427,34 @@ def render_telemetry(result=None):
     ), unsafe_allow_html=True)
 
 
-# ── Routing helper ───────────────────────────────────────────────────────────
+# ── Routing helper (merged page) ─────────────────────────────────────────────
 
-def render_governance(result=None):
-    render_audit_trail(result)
+def render_governance(result=None, persona: str = None):
+    """
+    Merged 'Audit & Governance' page.
+    3 tabs: Evidence Trail · Data Health · Access & Telemetry
+    """
+    st.markdown('<div class="prx-page-title">Audit &amp; Governance</div>',
+                unsafe_allow_html=True)
+    st.markdown(
+        '<div class="prx-page-sub">Complete evidence lineage, data health, '
+        'access controls, and system telemetry. Everything traceable. Nothing made up.</div>',
+        unsafe_allow_html=True
+    )
+
+    tab_ev, tab_dh, tab_acc = st.tabs([
+        "≡  Evidence Trail",
+        "⬡  Data Health",
+        "⊕  Access & Telemetry",
+    ])
+
+    with tab_ev:
+        render_audit_trail(result=result)
+
+    with tab_dh:
+        render_data_health()
+
+    with tab_acc:
+        render_entitlements(persona=persona or "")
+        st.markdown("---")
+        render_telemetry(result=result)

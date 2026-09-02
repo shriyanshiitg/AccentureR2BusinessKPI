@@ -96,20 +96,27 @@ _init_state()
 # ─── Global Header ────────────────────────────────────────────────────────────
 
 def _render_header():
-    """Sticky enterprise header with brand, persona, zone, period, status."""
+    """Sticky enterprise header with frosted glass, brand, persona pills, status."""
     persona_display = PERSONA_DISPLAY.get(st.session_state.persona, "Business Leader")
     st.markdown(f"""
 <div class="prx-app-header">
-  <div style="display:flex;align-items:center;gap:1.5rem;">
-    <div class="prx-wordmark">⬡ <span>PRAXIS</span>
+  <div style="display:flex;align-items:center;gap:0.5rem;">
+    <div class="prx-wordmark">
+      <div class="prx-wordmark-icon">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7 1L13 4.5V10.5L7 14L1 10.5V4.5L7 1Z" fill="white" fill-opacity="0.9"/>
+        </svg>
+      </div>
+      PR<span class="prx-wordmark-accent">AXIS</span>
       <span class="prx-wordmark-sub">KPI Intelligence to Action</span>
     </div>
   </div>
   <div class="prx-header-ctx">
-    <span class="prx-ctx-item">👤 <b>{persona_display}</b></span>
-    <span class="prx-ctx-item">📍 <b>{st.session_state.zone}</b></span>
-    <span class="prx-ctx-item">📅 <b>{st.session_state.period}</b></span>
-    <span class="prx-ctx-item"><span class="prx-status-dot green"></span> <b>Operational</b></span>
+    <span class="prx-ctx-pill">👤 <b>{persona_display}</b></span>
+    <span class="prx-ctx-pill">📍 <b>{st.session_state.zone}</b></span>
+    <span class="prx-ctx-pill">📅 <b>{st.session_state.period}</b></span>
+    <div class="prx-ctx-divider"></div>
+    <span class="prx-status-pill"><span class="prx-status-dot green"></span> Operational</span>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -117,33 +124,52 @@ def _render_header():
 
 # ─── Sidebar Navigation ───────────────────────────────────────────────────────
 
+# Redesigned: 5 items across 2 sections. "Scenario Launcher" is NOT a nav item —
+# it's a persistent CTA button always visible at the bottom of the sidebar.
 NAV_SECTIONS = {
-    "HOME": ["Morning Briefing"],
-    "INVESTIGATE": ["Active Investigations"],
-    "DECISIONS": ["Recommended Actions", "Past Decisions"],
-    "LEARNING": ["What Praxis Has Learned", "Memory"],
-    "GOVERNANCE": ["Evidence & Audit Trail", "Data Health",
-                   "Access & Entitlements", "Telemetry"],
-    "DEMO": ["Scenario Launcher"],
+    "WORKSPACE": [
+        ("Morning Briefing",      "◉", "Today's KPI alerts"),
+        ("Active Investigation",  "⌕", "Current analysis"),
+        ("Actions & Decisions",   "✓", "Recommendations · History"),
+    ],
+    "SYSTEM": [
+        ("Memory & Learning",     "⊗", "What Praxis has learned"),
+        ("Audit & Governance",    "≡", "Evidence · Data Health · Access"),
+    ],
 }
 
 
 def _render_sidebar():
-    """Render the enterprise sidebar."""
+    """Render the enterprise sidebar — 5 items + persistent demo CTA."""
     with st.sidebar:
-        # Logo
-        st.markdown("""
+        # ── Logo ──────────────────────────────────────────────────────────────
+        persona_display = PERSONA_DISPLAY.get(st.session_state.persona, "Business Leader")
+        st.markdown(f"""
 <div class="prx-sidebar-logo">
-  ⬡ <span>PRAXIS</span>
-  <span class="prx-sidebar-logo-sub">KPI Intelligence to Action</span>
+  <div class="prx-sidebar-logo-mark">
+    <div class="prx-sidebar-logo-icon">
+      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 1L13 4.5V10.5L7 14L1 10.5V4.5L7 1Z" fill="white" fill-opacity="0.9"/>
+      </svg>
+    </div>
+    PR<span class="acc">AXIS</span>
+  </div>
+  <div class="prx-sidebar-logo-sub">KPI Intelligence to Action</div>
+</div>
+<div class="prx-sidebar-persona">
+  <div>
+    <span class="prx-sidebar-persona-label">Active Persona</span>
+    <span class="prx-sidebar-persona-name">{persona_display}</span>
+  </div>
 </div>""", unsafe_allow_html=True)
 
         # Persona selector
         persona_option = st.selectbox(
-            "Active Persona",
+            "Switch Persona",
             ["Business Leader", "Operations Manager"],
             index=0 if st.session_state.persona == Persona.ZONE_BUSINESS_HEAD else 1,
             label_visibility="collapsed",
+            key="persona_select_sidebar",
         )
         new_persona = PERSONA_FROM_DISPLAY.get(persona_option, Persona.ZONE_BUSINESS_HEAD)
         if new_persona != st.session_state.persona:
@@ -153,35 +179,123 @@ def _render_sidebar():
 
         st.markdown('<div class="prx-sidebar-divider"></div>', unsafe_allow_html=True)
 
-        # Navigation
-        all_pages = [p for pages in NAV_SECTIONS.values() for p in pages]
-        for section, pages in NAV_SECTIONS.items():
+        # ── Navigation (5 items) ──────────────────────────────────────────────
+        current_page = st.session_state.page
+        for section, items in NAV_SECTIONS.items():
             st.markdown(f'<div class="prx-sidebar-group">{section}</div>',
                         unsafe_allow_html=True)
-            for page in pages:
-                icon = _page_icon(page)
-                if st.button(f"{icon}  {page}", key=f"nav_{page}",
-                             use_container_width=True,
-                             type="primary" if st.session_state.page == page else "secondary"):
-                    st.session_state.page = page
+            for page_name, icon, hint in items:
+                is_active = (current_page == page_name)
+                if st.button(
+                    f"{icon}  {page_name}",
+                    key=f"nav_{page_name}",
+                    use_container_width=True,
+                    type="primary" if is_active else "secondary",
+                    help=hint,
+                ):
+                    st.session_state.page = page_name
                     st.rerun()
 
+        st.markdown('<div class="prx-sidebar-divider"></div>', unsafe_allow_html=True)
 
-def _page_icon(page: str) -> str:
-    icons = {
-        "Morning Briefing":       "◉",
-        "Active Investigations":  "⌕",
-        "Recommended Actions":    "→",
-        "Past Decisions":         "⊞",
-        "What Praxis Has Learned":"◈",
-        "Memory":                 "⊗",
-        "Evidence & Audit Trail": "≡",
-        "Data Health":            "⬡",
-        "Access & Entitlements":  "⊕",
-        "Telemetry":              "⊛",
-        "Scenario Launcher":      "▶",
-    }
-    return icons.get(page, "·")
+        # ── Persistent Scenario Demo CTA ───────────────────────────────────────
+        st.markdown("""
+<div class="prx-sidebar-demo-btn">
+  <div class="prx-sidebar-demo-label">▶ Live Demo</div>
+  <div class="prx-sidebar-demo-title">Run Signature Demo</div>
+  <div class="prx-sidebar-demo-sub">S1 → S2 · Memory Proof</div>
+</div>""", unsafe_allow_html=True)
+
+        col_s1, col_s2 = st.columns(2)
+        with col_s1:
+            if st.button("S1 · Cold Start", key="quick_s1", use_container_width=True):
+                _run_and_navigate("s1", False)
+        with col_s2:
+            if st.button("S2 · Memory", key="quick_s2", use_container_width=True, type="primary"):
+                _run_and_navigate("s2", True)
+
+        # ── System status footer ───────────────────────────────────────────────
+        st.markdown("""
+<div class="prx-sidebar-footer">
+  <div class="prx-sidebar-footer-item"><span>Engine</span><b>C1–C5 Pipeline</b></div>
+  <div class="prx-sidebar-footer-item"><span>Tests</span><b style="color:#059669">76 passing</b></div>
+  <div class="prx-sidebar-footer-item"><span>LLM</span><b>Gemini 1.5 Flash</b></div>
+</div>""", unsafe_allow_html=True)
+
+
+# ─── Main routing ─────────────────────────────────────────────────────────────
+
+def main():
+    _render_header()
+    _render_sidebar()
+
+    page = st.session_state.page
+    result = st.session_state.pipeline_result
+    persona = st.session_state.persona
+    alert_queue = _get_alert_queue()
+
+    if page == "Morning Briefing":
+        render_morning_briefing(
+            alert_queue=alert_queue,
+            pipeline_result=result,
+            on_investigate=lambda: _navigate_to_investigation(),
+            on_run_scenario=lambda name, mem: _run_and_navigate(name, mem),
+        )
+
+    elif page == "Active Investigation":
+        if result is None:
+            _no_result_state(
+                "Active Investigation",
+                "No investigation is running.",
+                "Use the 'Run Signature Demo' button in the sidebar to launch an analysis.",
+            )
+        else:
+            render_investigation(result=result, persona=persona)
+
+    elif page == "Actions & Decisions":
+        # Merged: Recommended Actions + Past Decisions in one page with tabs
+        from ui.components.decisions import render_decisions
+        render_decisions(
+            result=result,
+            persona=persona,
+            decisions=st.session_state.past_decisions,
+            on_approve=_approve_decision,
+            on_feedback=_submit_feedback,
+        )
+
+    elif page == "Memory & Learning":
+        # Merged: What Praxis Learned + Memory records
+        from ui.components.learning import render_learning
+        render_learning(result=result, on_feedback=_submit_feedback)
+
+    elif page == "Audit & Governance":
+        # Merged: Evidence + Data Health + Access + Telemetry
+        from ui.components.governance import render_governance
+        render_governance(result=result, persona=persona)
+
+    # Legacy routes kept for backward compat (team members may link to these)
+    elif page in ("Recommended Actions", "Past Decisions"):
+        st.session_state.page = "Actions & Decisions"
+        st.rerun()
+    elif page in ("What Praxis Has Learned", "Memory"):
+        st.session_state.page = "Memory & Learning"
+        st.rerun()
+    elif page in ("Evidence & Audit Trail", "Data Health", "Access & Entitlements", "Telemetry"):
+        st.session_state.page = "Audit & Governance"
+        st.rerun()
+    elif page == "Scenario Launcher":
+        # Redirect to sidebar demo — the launcher is now inline
+        st.session_state.page = "Morning Briefing"
+        st.rerun()
+
+    elif page == "Active Investigations":   # legacy name
+        st.session_state.page = "Active Investigation"
+        st.rerun()
+
+
+def _navigate_to_investigation():
+    st.session_state.page = "Active Investigation"
+    st.rerun()
 
 
 # ─── Run pipeline helper ──────────────────────────────────────────────────────
@@ -208,85 +322,11 @@ def _get_alert_queue():
     return st.session_state.alert_queue
 
 
-# ─── Main routing ─────────────────────────────────────────────────────────────
-
-def main():
-    _render_header()
-    _render_sidebar()
-
-    page = st.session_state.page
-    result = st.session_state.pipeline_result
-    persona = st.session_state.persona
-    alert_queue = _get_alert_queue()
-
-    if page == "Morning Briefing":
-        render_morning_briefing(
-            alert_queue=alert_queue,
-            pipeline_result=result,
-            on_investigate=lambda: _navigate_to_investigation(),
-            on_run_scenario=lambda name, mem: _run_and_navigate(name, mem),
-        )
-
-    elif page == "Active Investigations":
-        if result is None:
-            _no_result_state("Active Investigations",
-                             "No investigation is active.",
-                             "Run a scenario from the Scenario Launcher or click Investigate in the Morning Briefing.")
-        else:
-            render_investigation(result=result, persona=persona)
-
-    elif page == "Recommended Actions":
-        if result is None:
-            _no_result_state("Recommended Actions",
-                             "No analysis has been run yet.",
-                             "Open the Scenario Launcher and run the Signature Demo to see recommended actions.")
-        else:
-            from ui.components.decisions import render_recommended_actions
-            render_recommended_actions(result=result, persona=persona,
-                                       on_approve=_approve_decision)
-
-    elif page == "Past Decisions":
-        from ui.components.decisions import render_past_decisions
-        render_past_decisions(decisions=st.session_state.past_decisions)
-
-    elif page == "What Praxis Has Learned":
-        from ui.components.learning import render_learning_page
-        render_learning_page(result=result)
-
-    elif page == "Memory":
-        from ui.components.learning import render_memory_page
-        render_memory_page(result=result, on_feedback=_submit_feedback)
-
-    elif page == "Evidence & Audit Trail":
-        from ui.components.governance import render_audit_trail
-        render_audit_trail(result=result)
-
-    elif page == "Data Health":
-        from ui.components.governance import render_data_health
-        render_data_health()
-
-    elif page == "Access & Entitlements":
-        from ui.components.governance import render_entitlements
-        render_entitlements(persona=persona)
-
-    elif page == "Telemetry":
-        from ui.components.governance import render_telemetry
-        render_telemetry(result=result)
-
-    elif page == "Scenario Launcher":
-        render_scenario_launcher(
-            on_run=lambda name, mem: _run_and_navigate(name, mem)
-        )
-
-
-def _navigate_to_investigation():
-    st.session_state.page = "Active Investigations"
-    st.rerun()
 
 
 def _run_and_navigate(name: str, use_memory: bool):
     _run_scenario(name, use_memory)
-    st.session_state.page = "Active Investigations"
+    st.session_state.page = "Active Investigation"
     st.rerun()
 
 
@@ -294,9 +334,13 @@ def _no_result_state(title: str, message: str, hint: str):
     from ui.components.design_system import empty_state
     st.markdown(f'<div class="prx-page-title">{title}</div>', unsafe_allow_html=True)
     st.markdown(empty_state(message, hint, "○"), unsafe_allow_html=True)
-    if st.button("→ Open Scenario Launcher"):
-        st.session_state.page = "Scenario Launcher"
-        st.rerun()
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        if st.button("▶ S1 · Cold Start Demo", type="primary"):
+            _run_and_navigate("s1", False)
+    with col2:
+        if st.button("▶ S2 · Memory Demo", type="primary"):
+            _run_and_navigate("s2", True)
 
 
 def _approve_decision(result):

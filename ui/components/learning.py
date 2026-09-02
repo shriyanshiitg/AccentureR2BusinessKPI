@@ -291,7 +291,25 @@ def render_memory_page(result=None, on_feedback: Optional[Callable] = None):
         st.session_state.feedback_msg = None
 
 
-# ── Routing helper (used by main app) ────────────────────────────────────────
+def render_learning(result=None, on_feedback=None):
+    """
+    Merged 'Memory & Learning' page.
+    Tab 1: Learning loop — what Praxis has learned (narrative + governance).
+    Tab 2: Memory records — DuckDB records + feedback form.
+    """
+    st.markdown('<div class="prx-page-title">Memory &amp; Learning</div>',
+                unsafe_allow_html=True)
+    st.markdown(
+        '<div class="prx-page-sub">Every approved decision becomes governed organizational experience. '
+        'Praxis accumulates <b>validated, traceable evidence</b> — not opinions.</div>',
+        unsafe_allow_html=True
+    )
 
-def render_learning(result=None):
-    render_learning_page(result)
+    tab_loop, tab_mem = st.tabs(["⊗  Learning Loop", "≡  Memory Records"])
+
+    with tab_loop:
+        render_learning_page(result=result)
+
+    with tab_mem:
+        render_memory_page(result=result, on_feedback=on_feedback)
+
