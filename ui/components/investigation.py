@@ -20,7 +20,7 @@ from ui.components.design_system import (
     conf_bar, empty_state, tel_html, method_badge
 )
 
-from praxis.c1_data_foundation.entitlements import Persona, can_access_zone_gmv_total
+from praxis.c1_data_foundation.entitlements import Persona
 from praxis.c1_data_foundation.kpi_contracts import KPI_CONTRACTS
 
 
@@ -169,7 +169,7 @@ def _tab_what_changed(ep, persona: str):
     test_t   = det.get("test_type", "z_score")
 
     # Entitlement: zone GMV total visible only to Zone Head
-    if ep.kpi_id == "zone_gmv" and not can_access_zone_gmv_total(persona):
+    if ep.kpi_id == "zone_gmv" and persona != Persona.ZONE_BUSINESS_HEAD:
         st.markdown("""
 <div class="prx-restricted-notice">
   🔒 Zone-level GMV total is restricted to your role. You can see your store's contribution only.
